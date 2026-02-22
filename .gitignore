@@ -147,3 +147,6 @@ frontend/node_modules/.cache/default-development/8.pack_
 # Environment files
 *.env
 *.env.*
+backend/backups/
+backend/scripts/import_hubspot.py
+
