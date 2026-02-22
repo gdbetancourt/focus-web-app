@@ -1,0 +1,93 @@
+{
+  "summary": "Phase 5 (Automatic Company Association) backend testing completed. All 14 tests pass (100%). Endpoints verified: POST /api/contacts/, PUT /api/contacts/{id}. Service functions verified: find_company_by_name_or_alias, find_company_by_domain, create_inactive_company, associate_contact_with_company",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase5_company_association.py",
+    "/app/test_reports/pytest/phase5_company_association_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "The company_association.py service is well-structured with proper separation of concerns",
+    "Domain-based matching works correctly but may unexpectedly match contacts to companies when email domains match - this is by design but should be documented for users",
+    "Auto-created companies are correctly marked with is_active=False and source='auto_created'",
+    "MongoDB _id is properly excluded from responses"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase5_company_association.py - Created comprehensive test suite for Phase 5 endpoints"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "Not tested (backend only request)"
+  },
+  "test_credentials": {
+    "test_session_token": "teststaff_jRpK6_PrQ_IboZOMBMUOdjGBBXAarHlrMzsly06s6Xo",
+    "test_user_email": "perla@leaderlix.com"
+  },
+  "seed_data_creation": "None required - used existing company 'Amgen' (ID: 6183958800, aliases: ['Amgen MX', 'Amgen Mexico']) for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase 5 Automatic Company Association is fully functional. Test coverage includes: create contact with existing company (matches by name or alias), create contact with unknown company (creates inactive company), update contact with company field triggers auto-association, case-insensitive matching, domain-based matching as fallback, empty/null company handling. Cookie-based authentication using session_token cookie is required for all endpoints. Note: There's an auto-created company 'TEST_Auto_Company_8d68d902' with domain 'test.com' that may interfere with tests using @test.com emails - use unique domains for testing.",
+  "features_verified": {
+    "POST /api/contacts/ - Create with existing company": {
+      "status": "PASS",
+      "tests": [
+        "Contact with company='Amgen' gets company_id=6183958800",
+        "Contact with company='Amgen MX' (alias) gets company_id=6183958800 and canonical name 'Amgen'",
+        "Case insensitive matching works ('AMGEN' matches 'Amgen')"
+      ]
+    },
+    "POST /api/contacts/ - Create with new company": {
+      "status": "PASS",
+      "tests": [
+        "Contact with unknown company creates inactive company (is_active=False)",
+        "Auto-created company has UUID format ID",
+        "Auto-created company has hubspot_id starting with 'auto_'",
+        "Auto-created company has source='auto_created'"
+      ]
+    },
+    "PUT /api/contacts/{id} - Update with company": {
+      "status": "PASS",
+      "tests": [
+        "Update contact with existing company name associates correctly",
+        "Update contact with unknown company creates inactive company",
+        "Update contact with alias uses canonical company name"
+      ]
+    },
+    "Edge cases": {
+      "status": "PASS",
+      "tests": [
+        "Contact without company has no company_id",
+        "Contact with empty company has no company_id",
+        "Domain-based matching works as fallback"
+      ]
+    },
+    "Data persistence": {
+      "status": "PASS",
+      "tests": [
+        "GET contact returns persisted company_id",
+        "companies array is persisted correctly"
+      ]
+    },
+    "Authentication": {
+      "status": "PASS",
+      "tests": [
+        "POST /api/contacts/ requires authentication (401 without session cookie)",
+        "PUT /api/contacts/{id} requires authentication (401 without session cookie)"
+      ]
+    }
+  },
+  "service_functions_verified": {
+    "find_company_by_name_or_alias": "Searches hubspot_companies, active_companies, companies collections in order. Supports exact name match, alias match, and normalized name match",
+    "find_company_by_domain": "Searches by domain field and domains array with www. prefix handling",
+    "create_inactive_company": "Creates company with is_active=False, source='auto_created', UUID id, hubspot_id='auto_{uuid}'",
+    "associate_contact_with_company": "Orchestrates search (name/alias -> domain -> create) and returns (company_id, canonical_name, was_created)"
+  }
+}

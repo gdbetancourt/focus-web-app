@@ -1,0 +1,235 @@
+{
+  "summary": {
+    "total_tests": 32,
+    "passed_tests": 31,
+    "failed_tests": 1,
+    "success_rate": 96.875
+  },
+  "results": [
+    {
+      "test_name": "User Registration",
+      "success": false,
+      "endpoint": "auth/register",
+      "details": "Expected 200, got 400 - Email already registered",
+      "timestamp": "2026-01-23T23:10:41.925689"
+    },
+    {
+      "test_name": "User Login",
+      "success": true,
+      "endpoint": "auth/login",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:42.189953"
+    },
+    {
+      "test_name": "Protected Route - Get User Profile",
+      "success": true,
+      "endpoint": "auth/me",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:42.236024"
+    },
+    {
+      "test_name": "Get Events",
+      "success": true,
+      "endpoint": "events/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:42.279146"
+    },
+    {
+      "test_name": "Sync Events from HubSpot Cohortes",
+      "success": true,
+      "endpoint": "events/sync",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:42.807355"
+    },
+    {
+      "test_name": "Events Sync Response Structure",
+      "success": true,
+      "endpoint": "",
+      "details": "Synced events: 1",
+      "timestamp": "2026-01-23T23:10:42.807976"
+    },
+    {
+      "test_name": "Get HubSpot Contacts",
+      "success": true,
+      "endpoint": "hubspot/contacts",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:42.858929"
+    },
+    {
+      "test_name": "Sync HubSpot Contacts",
+      "success": true,
+      "endpoint": "hubspot/sync",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.378643"
+    },
+    {
+      "test_name": "Get Templates",
+      "success": true,
+      "endpoint": "templates/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.419018"
+    },
+    {
+      "test_name": "Create Template",
+      "success": true,
+      "endpoint": "templates/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.461231"
+    },
+    {
+      "test_name": "Get Specific Template",
+      "success": true,
+      "endpoint": "templates/9192cdb5-afc5-4668-b754-884493f13703",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.500828"
+    },
+    {
+      "test_name": "Update Template",
+      "success": true,
+      "endpoint": "templates/9192cdb5-afc5-4668-b754-884493f13703",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.544276"
+    },
+    {
+      "test_name": "Delete Template",
+      "success": true,
+      "endpoint": "templates/9192cdb5-afc5-4668-b754-884493f13703",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.586071"
+    },
+    {
+      "test_name": "Create Template for Campaign",
+      "success": true,
+      "endpoint": "templates/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.635998"
+    },
+    {
+      "test_name": "Get Campaigns",
+      "success": true,
+      "endpoint": "campaigns/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.671575"
+    },
+    {
+      "test_name": "Create Campaign",
+      "success": true,
+      "endpoint": "campaigns/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.711021"
+    },
+    {
+      "test_name": "Get Specific Campaign",
+      "success": true,
+      "endpoint": "campaigns/d11d8f56-46c4-4b02-9776-27ae735194f4",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.750818"
+    },
+    {
+      "test_name": "Delete Campaign",
+      "success": true,
+      "endpoint": "campaigns/d11d8f56-46c4-4b02-9776-27ae735194f4",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.787108"
+    },
+    {
+      "test_name": "Cleanup Template",
+      "success": true,
+      "endpoint": "templates/59ee0f2c-be83-4a4f-af2a-950690a22dca",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.864280"
+    },
+    {
+      "test_name": "Create Template for Preview",
+      "success": true,
+      "endpoint": "templates/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.907296"
+    },
+    {
+      "test_name": "Get Contacts for Preview",
+      "success": true,
+      "endpoint": "hubspot/contacts",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:43.951446"
+    },
+    {
+      "test_name": "Generate Email Preview",
+      "success": true,
+      "endpoint": "preview/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.121813"
+    },
+    {
+      "test_name": "Preview Response Structure",
+      "success": true,
+      "endpoint": "",
+      "details": "All expected fields present",
+      "timestamp": "2026-01-23T23:10:47.122396"
+    },
+    {
+      "test_name": "Cleanup Preview Template",
+      "success": true,
+      "endpoint": "templates/d26e7172-7eb7-40e2-ba2b-4ce0516d7d76",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.184882"
+    },
+    {
+      "test_name": "Get Dashboard Stats",
+      "success": true,
+      "endpoint": "dashboard/stats",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.227950"
+    },
+    {
+      "test_name": "Dashboard Stats Fields",
+      "success": true,
+      "endpoint": "",
+      "details": "All expected fields present",
+      "timestamp": "2026-01-23T23:10:47.228623"
+    },
+    {
+      "test_name": "Get Settings",
+      "success": true,
+      "endpoint": "settings/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.271335"
+    },
+    {
+      "test_name": "Update Settings",
+      "success": true,
+      "endpoint": "settings/",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.309909"
+    },
+    {
+      "test_name": "Get Email Logs",
+      "success": true,
+      "endpoint": "email-logs",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.344356"
+    },
+    {
+      "test_name": "Get Deal Movements",
+      "success": true,
+      "endpoint": "deal-movements",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.380775"
+    },
+    {
+      "test_name": "Get Scheduler Info",
+      "success": true,
+      "endpoint": "scheduler/info",
+      "details": "Status: 200",
+      "timestamp": "2026-01-23T23:10:47.422439"
+    },
+    {
+      "test_name": "Scheduler Info Structure",
+      "success": true,
+      "endpoint": "",
+      "details": "Status: configured_not_active",
+      "timestamp": "2026-01-23T23:10:47.423050"
+    }
+  ],
+  "timestamp": "2026-01-23T23:10:47.423330"
+}

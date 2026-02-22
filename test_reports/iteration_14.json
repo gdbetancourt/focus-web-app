@@ -1,0 +1,99 @@
+{
+  "summary": "Comprehensive testing of Long-form Videos (YouTube) Kanban and Attract (Video Ideas) features completed. All backend APIs working correctly (17/17 tests passed). Frontend Kanban boards fully functional with create, edit, status change, and delete operations verified.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: GET /api/youtube/videos returns videos list and counts",
+    "Backend: POST /api/youtube/videos creates new video project",
+    "Backend: PUT /api/youtube/videos/{id} updates video status and fields",
+    "Backend: DELETE /api/youtube/videos/{id} deletes video",
+    "Backend: Video status progression through all 6 statuses (idea→scripting→filming→editing→review→published)",
+    "Backend: GET /api/attract/ideas returns ideas list and counts",
+    "Backend: POST /api/attract/ideas creates new video idea",
+    "Backend: PUT /api/attract/ideas/{id} updates idea status and fields",
+    "Backend: DELETE /api/attract/ideas/{id} deletes idea",
+    "Backend: Idea status progression through all 5 statuses (idea→scripting→filming→editing→published)",
+    "Backend: GET /api/attract/trending returns trending videos (MOCKED - requires Apify subscription)",
+    "Frontend: Long-form Videos page loads with 6-column Kanban board",
+    "Frontend: All Kanban columns visible (Ideas, Scripting, Filming, Editing, Review, Published)",
+    "Frontend: New Video Project button opens dialog with all fields",
+    "Frontend: Create video project works and card appears in Kanban",
+    "Frontend: Click on video card opens edit dialog with all fields",
+    "Frontend: Status change via dropdown moves card to correct column",
+    "Frontend: Save Changes updates video and shows success toast",
+    "Frontend: Delete video removes card from Kanban",
+    "Frontend: Attract page loads with TikTok Trends 'Coming Soon' section",
+    "Frontend: Video Ideas Kanban visible with 5 columns",
+    "Frontend: New Video Idea button opens dialog",
+    "Frontend: Create idea works and card appears in Kanban",
+    "Frontend: Edit and delete idea functionality works"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_youtube_attract.py",
+    "/app/test_reports/pytest/youtube_attract_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_youtube_attract.py - Created comprehensive test suite for YouTube and Attract APIs"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (17/17 tests passed)",
+    "frontend": "100% (all features verified)"
+  },
+  
+  "test_credentials": {
+    "email": "perla@leaderlix.com",
+    "password": "Leaderlix2025"
+  },
+  
+  "seed_data_creation": "Test data created and cleaned up during testing (TEST_ prefixed items)",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": true,
+  
+  "context_for_next_testing_agent": "Long-form Videos Kanban at /nurture/long-form-videos with 6 statuses (idea, scripting, filming, editing, review, published). Attract page at /prospect/1-2-1-viral-videos with TikTok Trends 'Coming Soon' section (MOCKED - requires Apify subscription) and Video Ideas Kanban with 5 statuses. All CRUD operations working for both features.",
+  
+  "mocked_apis": {
+    "tiktok_trending": {
+      "endpoint": "/api/attract/trending",
+      "status": "MOCKED",
+      "reason": "TikTok trending videos integration requires paid Apify actor subscription",
+      "mock_behavior": "Returns sample trending videos data for demo purposes"
+    }
+  },
+  
+  "feature_verification": {
+    "long_form_videos_kanban": {
+      "status": "WORKING",
+      "details": "6-column Kanban board (Ideas, Scripting, Filming, Editing, Review, Published) with full CRUD operations",
+      "route": "/nurture/long-form-videos"
+    },
+    "attract_tiktok_trends": {
+      "status": "MOCKED - Coming Soon",
+      "details": "Shows 'Coming Soon' badge with link to enable Apify TikTok actor subscription",
+      "route": "/prospect/1-2-1-viral-videos"
+    },
+    "attract_video_ideas_kanban": {
+      "status": "WORKING",
+      "details": "5-column Kanban board (Ideas, Scripting, Filming, Editing, Published) with full CRUD operations",
+      "route": "/prospect/1-2-1-viral-videos"
+    }
+  }
+}

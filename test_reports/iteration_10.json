@@ -1,0 +1,121 @@
+{
+  "summary": "Certificados (Certificate Generator) feature testing completed. All 16 backend API tests pass. Frontend UI fully functional including contact search, program/level selection, certificate generation with preview, PDF download, and certificate deletion.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: GET /api/certificados/catalog/programs - Returns 14 programs",
+    "Backend: GET /api/certificados/catalog/levels - Returns 4 levels (Commitment, Mastery, Performance, Results)",
+    "Backend: GET /api/certificados/search-contact?email=X - Contact found returns contact data",
+    "Backend: GET /api/certificados/search-contact - Contact not found returns 404",
+    "Backend: POST /api/certificados/generate - Creates certificate with auto-generated number (CERT-YYYY-XXXXX)",
+    "Backend: POST /api/certificados/generate - Invalid program returns 400",
+    "Backend: POST /api/certificados/generate - Invalid level returns 400",
+    "Backend: POST /api/certificados/generate - Contact not found returns 404",
+    "Backend: GET /api/certificados/list - Returns certificates list with total count",
+    "Backend: GET /api/certificados/{id} - Returns certificate details",
+    "Backend: GET /api/certificados/{id} - Non-existent returns 404",
+    "Backend: GET /api/certificados/{id}/pdf - Generates PDF file (reportlab)",
+    "Backend: GET /api/certificados/{id}/pdf - Non-existent returns 404",
+    "Backend: DELETE /api/certificados/{id} - Deletes certificate successfully",
+    "Backend: DELETE /api/certificados/{id} - Non-existent returns 404",
+    "Backend: Cleanup test data - Test certificates deleted",
+    "Frontend: Certificados page loads correctly with stats cards",
+    "Frontend: Stats show Total Emitidos, Commitment, Mastery, Results counts",
+    "Frontend: 'Nuevo Certificado' button opens dialog",
+    "Frontend: Email search field works",
+    "Frontend: Contact found message displays with name and company",
+    "Frontend: Program selector shows 14 programs",
+    "Frontend: Level selector shows 4 levels with descriptions",
+    "Frontend: Hours input field works",
+    "Frontend: Vista previa (preview) section shows all certificate details",
+    "Frontend: 'Generar Certificado' button creates certificate and auto-downloads PDF",
+    "Frontend: Certificate list displays all columns (Número, Participante, Programa, Nivel, Horas, Fecha, Acciones)",
+    "Frontend: Download PDF button works from list",
+    "Frontend: Delete button visible in list",
+    "Frontend: Navigation: Delivery > Certificados menu works"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_certificados.py",
+    "/app/test_reports/pytest/certificados_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_certificados.py - Created comprehensive pytest test suite (16 tests)"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% (all features working)"
+  },
+  
+  "test_credentials": {
+    "email": "perla@leaderlix.com",
+    "password": "Leaderlix2025"
+  },
+  
+  "seed_data_creation": "Test certificate (Datastory/Commitment) was created and cleaned up after testing. Original certificate CERT-2026-00001 preserved.",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": true,
+  
+  "context_for_next_testing_agent": "Certificados feature fully tested and working. All backend APIs pass (catalog programs/levels, contact search, certificate CRUD, PDF generation). Frontend UI works correctly: email search with contact found display, program/level selectors, hours input, preview section, certificate generation with auto PDF download, list with download/delete actions. The feature was migrated from leaderlix.com/generador-certificados. Test contact: adolfo.trejo@hotmail.com (Adolfo Trejo from BristolMyers Squibb).",
+  
+  "feature_verification": {
+    "programs_catalog": {
+      "status": "WORKING",
+      "details": "14 programs available: Escucha Activa, Datastory, Arquetipos, Entrevistas, Storyleading, Presentaciones Médicas, Elevator Pitch Médico, Storyselling, Cultura del Acuerdo, Toma de Decisiones, Rockstars de la Ciencia, Lo Hago Contigo, Yo Te Enseño, Masterclass"
+    },
+    "levels_catalog": {
+      "status": "WORKING",
+      "details": "4 levels: Commitment (inicial), Mastery (dominio), Performance (alto rendimiento), Results (resultados)"
+    },
+    "contact_search": {
+      "status": "WORKING",
+      "details": "Searches HubSpot contacts by email. Returns firstname, lastname, company, jobtitle"
+    },
+    "certificate_generation": {
+      "status": "WORKING",
+      "details": "Creates certificate with auto-generated number (CERT-YYYY-XXXXX), validates program/level, stores in MongoDB"
+    },
+    "pdf_generation": {
+      "status": "WORKING",
+      "details": "PDF generated with reportlab in landscape format. Includes: LEADERLIX header, level badge, participant name, program name, hours, issue date, certificate number, signature"
+    },
+    "certificate_list": {
+      "status": "WORKING",
+      "details": "Lists all certificates with pagination. Shows: number, participant, program, level, hours, date, actions"
+    },
+    "certificate_delete": {
+      "status": "WORKING",
+      "details": "Deletes certificate from database. Returns 404 for non-existent"
+    },
+    "frontend_dialog": {
+      "status": "WORKING",
+      "details": "4-step form: 1) Search participant, 2) Select program, 3) Select level, 4) Enter hours. Shows preview before generation"
+    },
+    "frontend_stats": {
+      "status": "WORKING",
+      "details": "Stats cards show: Total Emitidos, Commitment count, Mastery count, Results count"
+    },
+    "navigation": {
+      "status": "WORKING",
+      "details": "Certificados accessible via Delivery section in sidebar navigation"
+    }
+  }
+}

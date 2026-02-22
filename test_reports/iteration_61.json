@@ -1,0 +1,71 @@
+{
+  "summary": "Backend testing for Current Cases bug fixes - Traffic light gray status and role grouping. All 13 tests PASSED. Both bugs are FIXED.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_current_cases_bugfixes.py",
+    "/app/test_reports/pytest/current_cases_bugfixes_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BUG FIX 1 VERIFIED: Traffic light /api/scheduler/traffic-light returns 'current-cases' with status green/yellow/red (never gray)",
+    "BUG FIX 2 VERIFIED: /api/cases/delivery/ganados returns weekly_status of green/yellow/red for all cases (never gray)",
+    "BUG FIX 3 VERIFIED: New columns in role groups only create cells for contacts with matching case_roles",
+    "NOTE: Existing checklist cells created before the fix still show old data - they were created with all contacts regardless of roles. New columns follow correct logic."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_current_cases_bugfixes.py - NEW: 13 test cases for bug fixes"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "N/A (backend only testing)"
+  },
+  "test_credentials": {
+    "test_session_token": "teststaff_jRpK6_PrQ_IboZOMBMUOdjGBBXAarHlrMzsly06s6Xo",
+    "test_user_email": "perla@leaderlix.com"
+  },
+  "seed_data_creation": "Used existing Stage 4 Ganados cases",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fixes for Current Cases section verified: (1) traffic-light endpoint returns 'current-cases' key with valid status green/yellow/red, (2) ganados cases have weekly_status of green/yellow/red, (3) Role grouping uses case_roles (case-level) not global roles. Backend code in scheduler.py and cases.py is correct. Frontend code in CurrentCasesDeliveryPage.jsx handles role normalization correctly.",
+  "verified_endpoints": {
+    "GET /api/scheduler/traffic-light": {
+      "status": "PASS",
+      "key_verified": "current-cases",
+      "sample_response": {
+        "status": "red",
+        "cases_count": 11,
+        "has_tasks": true,
+        "tasks_count": 82,
+        "case_statuses": {"green": 8, "yellow": 0, "red": 3}
+      }
+    },
+    "GET /api/cases/delivery/ganados": {
+      "status": "PASS",
+      "weekly_status_values_found": ["green", "red"],
+      "gray_status_found": false,
+      "contacts_have_case_roles": true
+    }
+  },
+  "bug_fixes_verified": {
+    "traffic_light_gray_status": {
+      "description": "Traffic light showing gray for current week",
+      "fix_location": "backend/routers/scheduler.py - calculate_current_cases_status function",
+      "status": "FIXED",
+      "evidence": "current-cases returns status='red' (not gray)"
+    },
+    "role_grouping_deal_maker": {
+      "description": "Contacts with Deal Maker role appearing in 'others' instead of 'deal_makers_team'",
+      "fix_location": "backend/routers/cases.py - create_checklist_column function, frontend/src/components/focus/CurrentCasesDeliveryPage.jsx - getRoleGroupsForContact",
+      "status": "FIXED",
+      "evidence": "New column created in coachees group only has cell for contact with coachee case_role (Kathia Lira), not all contacts"
+    }
+  }
+}

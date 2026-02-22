@@ -1,0 +1,97 @@
+{
+  "summary": "Backend testing for company merge bug fixes. All 15 tests passed (100%). Fixed critical MongoDB conflict error in merge endpoint. Verified: 1) exclude_id parameter filters current company from search results, 2) is_merged=true companies excluded from search, 3) Secondary company validation for already merged, 4) Alias duplicate validation, 5) Merge returns success correctly.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/companies/merge",
+        "issue": "MongoDB WriteError: Updating the path 'company_names' would create a conflict - FIXED by splitting $pull and $addToSet into separate operations",
+        "priority": "FIXED"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_company_merge_bugfixes.py",
+    "/app/test_reports/pytest/company_merge_bugfixes_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FIXED: MongoDB conflict error in /api/companies/merge at line 1266 - $pull and $addToSet cannot be on same field in single update operation",
+    "exclude_id parameter correctly filters current company from search results",
+    "is_merged=true companies properly excluded from search endpoint",
+    "Frontend shows 'Se agregó el Alias' message on successful merge (line 301 CompanyEditorDialog.jsx)",
+    "Error messages properly in Spanish: 'La empresa seleccionada ya fue combinada con otra', 'Este alias ya pertenece a otra empresa: {name}'"
+  ],
+  "updated_files": [
+    "/app/backend/routers/companies.py - Fixed MongoDB conflict in merge_two_companies function (lines 1266-1281)",
+    "/app/backend/tests/test_company_merge_bugfixes.py - New test suite for merge bug fixes"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "Not tested (backend only requested)"
+  },
+  "test_credentials": {
+    "test_session_token": "teststaff_jRpK6_PrQ_IboZOMBMUOdjGBBXAarHlrMzsly06s6Xo",
+    "test_user_email": "perla@leaderlix.com"
+  },
+  "seed_data_creation": "Used existing companies (Novartis, Amgen) for testing. Merged company e754e96c-03f3-427f-abb0-085cf00f8fe4 now has is_merged=true.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 5 bug fixes verified: 1) GET /api/companies/search?exclude_id works - excludes current company, 2) Search excludes is_merged=true companies, 3) POST /api/companies/merge validates secondary not already merged (returns 404 if is_merged=true), 4) Merge validates alias not already in another company (returns 400 with 'Este alias ya pertenece a otra empresa'), 5) Merge returns success=true with proper response. FIXED MongoDB conflict error by splitting $pull/$addToSet into separate operations.",
+  "features_verified": {
+    "GET /api/companies/search with exclude_id": {
+      "status": "PASS",
+      "tests": [
+        "exclude_id parameter filters out current company",
+        "Works with various ID formats (id, hubspot_id, hs_object_id)",
+        "Results count reduced when exclude_id applied"
+      ]
+    },
+    "GET /api/companies/search excludes merged": {
+      "status": "PASS",
+      "tests": [
+        "is_merged=true companies not in results",
+        "is_merged field removed from response",
+        "Multiple search queries verified"
+      ]
+    },
+    "POST /api/companies/merge - merged validation": {
+      "status": "PASS",
+      "tests": [
+        "Returns 404 if secondary is already merged",
+        "_find_company_by_id excludes is_merged=true",
+        "Error: 'Empresa secundaria no encontrada'"
+      ]
+    },
+    "POST /api/companies/merge - alias validation": {
+      "status": "PASS",
+      "tests": [
+        "Checks if secondary name exists as alias in another company",
+        "Error format: 'Este alias ya pertenece a otra empresa: {name}'"
+      ]
+    },
+    "POST /api/companies/merge - success response": {
+      "status": "PASS",
+      "tests": [
+        "Returns success=true",
+        "Returns message with company names",
+        "Returns contacts_updated, cases_updated counts",
+        "Returns new_aliases, new_domains, new_industries arrays"
+      ]
+    }
+  },
+  "bug_fix_details": {
+    "MongoDB_conflict_error": {
+      "symptom": "500 Internal Server Error when merging companies",
+      "root_cause": "MongoDB $pull and $addToSet cannot operate on same field in single update_many operation",
+      "fix": "Split into two separate update_many calls: 1) $pull secondary name, 2) $addToSet primary name",
+      "file": "/app/backend/routers/companies.py",
+      "lines": "1266-1281"
+    }
+  }
+}

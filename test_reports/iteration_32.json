@@ -1,0 +1,132 @@
+{
+  "summary": "Task 2.2.6.1 'Contenido: Proceso completo' - Content Pipeline testing complete. All 12 features verified working: Ideas management (list, create, delete, select, load), AI tools (dictation cleanup, slides, LinkedIn, blog outline), Blog publishing dialog, Video tab with 3 cards, Language selector (ES/EN).",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "POST /api/auth/login - Login with valid credentials returns token",
+    "GET /api/content-flow/contents - Lists ideas (50 pending ideas found)",
+    "POST /api/content-flow/contents - Create new idea works",
+    "GET /api/content-flow/contents/{id} - Get single idea works",
+    "DELETE /api/content-flow/contents/{id} - Delete idea works",
+    "PUT /api/content-flow/contents/{id}/move - Move idea status works",
+    "GET /api/content-flow/stages - Returns 19 workflow stages",
+    "POST /api/content-flow/ai/clean-dictation - Spanish dictation cleanup works",
+    "POST /api/content-flow/ai/clean-dictation - English dictation cleanup works",
+    "POST /api/content-flow/ai/generate-slides - Generates slides with speaker notes",
+    "POST /api/content-flow/ai/generate-linkedin-post - Generates LinkedIn post with hashtags",
+    "POST /api/content-flow/ai/generate-blog-outline - Generates full blog outline",
+    "GET /api/blog/posts - Lists blog posts",
+    "POST /api/blog/posts - Create blog post works",
+    "DELETE /api/blog/posts/{id} - Delete blog post works",
+    "POST /api/content-flow/shortcut/capture - iOS Shortcut capture works (public endpoint)",
+    "GET /api/content-flow/shortcut/recent - Get recent captures works (public endpoint)",
+    "Frontend - Content Pipeline page loads with 6 tabs",
+    "Frontend - Ideas tab shows 50 pending ideas with iOS badge",
+    "Frontend - Create new idea via form works",
+    "Frontend - Select idea shows action panel with buttons",
+    "Frontend - Load idea populates Blog, Dictation, Slides, LinkedIn inputs",
+    "Frontend - Dictados tab - AI cleanup generates cleaned text",
+    "Frontend - Slides tab - Generate slides button present",
+    "Frontend - LinkedIn tab - Generate post button present",
+    "Frontend - Blog tab - Generate outline creates full outline",
+    "Frontend - Blog tab - Publish dialog opens with pre-filled content",
+    "Frontend - Video tab - Shows 3 cards (Transcribir, Analizar, YouTube)",
+    "Frontend - Language selector (ES/EN) toggles correctly"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_content_pipeline.py",
+    "/app/test_reports/pytest/content_pipeline_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "ContentPipeline.jsx - Well structured with 6 tabs, proper state management",
+    "content_flow.py - AI endpoints use EMERGENT_LLM_KEY correctly with gemini-2.0-flash model",
+    "blog.py - Blog posts API properly handles create/read/update/delete",
+    "iOS Shortcut endpoints are public (no auth required) as designed"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_content_pipeline.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "100% (all features working)"
+  },
+  
+  "test_credentials": {
+    "email": "perla@leaderlix.com",
+    "password": "Leaderlix2025"
+  },
+  
+  "seed_data_creation": "Created and cleaned up TEST_ prefixed ideas and blog posts during testing",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Content Pipeline (Task 2.2.6.1) fully implemented and tested. Page has 6 tabs: Ideas, Dictados, Slides, LinkedIn, Blog, Video. All AI endpoints working with EMERGENT_LLM_KEY. iOS Shortcut capture endpoint is public. Blog publish dialog creates posts in /api/blog/posts.",
+  
+  "features_verified": {
+    "ideas_tab": {
+      "list_ideas": "PASS - Shows ideas with status='new' from content_flow collection",
+      "create_idea": "PASS - Form creates new idea via POST /api/content-flow/contents",
+      "delete_idea": "PASS - Delete button removes idea",
+      "select_idea": "PASS - Click shows selected idea panel with action buttons",
+      "load_idea": "PASS - loadIdeaForContent populates other tabs"
+    },
+    "dictation_tab": {
+      "clean_dictation": "PASS - AI removes filler words, fixes grammar"
+    },
+    "slides_tab": {
+      "generate_slides": "PASS - Creates slides with titles, bullets, speaker notes"
+    },
+    "linkedin_tab": {
+      "generate_post": "PASS - Creates LinkedIn post with hashtags"
+    },
+    "blog_tab": {
+      "generate_outline": "PASS - Creates full outline with intro, sections, conclusion",
+      "publish_dialog": "PASS - Opens with pre-filled title, excerpt, content",
+      "publish_to_blog": "PASS - Creates post in /api/blog/posts"
+    },
+    "video_tab": {
+      "three_cards": "PASS - Shows Transcribir, Analizar, YouTube cards",
+      "links_to_video_processing": "PASS - All cards link to /nurture/video-processing"
+    },
+    "language_selector": {
+      "es_en_toggle": "PASS - Buttons toggle language for AI generation"
+    }
+  },
+  
+  "api_endpoints_tested": {
+    "POST /api/auth/login": "200 OK",
+    "GET /api/content-flow/contents": "200 OK - Returns contents array",
+    "POST /api/content-flow/contents": "200 OK - Creates new content",
+    "GET /api/content-flow/contents/{id}": "200 OK - Returns single content",
+    "DELETE /api/content-flow/contents/{id}": "200 OK - Deletes content",
+    "PUT /api/content-flow/contents/{id}/move": "200 OK - Updates status",
+    "GET /api/content-flow/stages": "200 OK - Returns 19 stages",
+    "POST /api/content-flow/ai/clean-dictation": "200 OK - Returns cleaned_text",
+    "POST /api/content-flow/ai/generate-slides": "200 OK - Returns slides array",
+    "POST /api/content-flow/ai/generate-linkedin-post": "200 OK - Returns post text",
+    "POST /api/content-flow/ai/generate-blog-outline": "200 OK - Returns outline object",
+    "GET /api/blog/posts": "200 OK - Returns posts array",
+    "POST /api/blog/posts": "200 OK - Creates blog post",
+    "DELETE /api/blog/posts/{id}": "200 OK - Deletes post",
+    "POST /api/content-flow/shortcut/capture": "200 OK - Public endpoint",
+    "GET /api/content-flow/shortcut/recent": "200 OK - Public endpoint"
+  }
+}

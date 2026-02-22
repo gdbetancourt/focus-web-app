@@ -1,0 +1,57 @@
+{
+  "summary": "Backend testing completed for Gemini message variation and email queue cleanup features. All 15 tests passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_gemini_variation_and_email_cleanup.py",
+    "/app/test_reports/pytest/gemini_email_cleanup_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_gemini_variation_and_email_cleanup.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "skipped (per request)"
+  },
+  "seed_data_creation": "None needed",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Verified: 1) /api/whatsapp-rules/generate-varied-urls endpoint exists and accepts POST with rule_id, group_key, subgroup_key, contact_ids, template_message. 2) generate_varied_message_gemini function calls Gemini API using EMERGENT_LLM_KEY and emergentintegrations.llm.chat. 3) cleanup_email_queue function in email_rules.py correctly uses db.email_queue collection (not db.scheduled_emails). 4) Frontend WhatsAppRulesFollowUp.jsx has Gemini variation toggle switch (useGeminiVariation state), progress bar (geminiProgress state), and correctly calls the appropriate endpoint based on toggle state.",
+  "features_verified": {
+    "gemini_variation_endpoint": {
+      "status": "PASS",
+      "endpoint": "/api/whatsapp-rules/generate-varied-urls",
+      "method": "POST",
+      "expected_fields": ["rule_id", "group_key", "subgroup_key", "contact_ids", "template_message"]
+    },
+    "generate_varied_message_gemini_function": {
+      "status": "PASS",
+      "location": "/app/backend/routers/whatsapp_rules.py lines 740-816",
+      "uses_api_key": "EMERGENT_LLM_KEY",
+      "imports": "emergentintegrations.llm.chat"
+    },
+    "email_queue_cleanup": {
+      "status": "PASS",
+      "function": "cleanup_email_queue",
+      "location": "/app/backend/routers/email_rules.py lines 1980-2054",
+      "correct_collection": "db.email_queue",
+      "incorrect_collection_absent": "scheduled_emails not used"
+    },
+    "frontend_gemini_toggle": {
+      "status": "PASS",
+      "component": "WhatsAppRulesFollowUp.jsx",
+      "state_variables": ["useGeminiVariation", "geminiProgress"],
+      "toggle_default": true,
+      "progress_bar": "Present when geminiProgress.active is true"
+    }
+  }
+}

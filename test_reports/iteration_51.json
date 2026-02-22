@@ -1,0 +1,127 @@
+{
+  "summary": "Testing and Bug Fixes for External LMS Feature. Found and fixed 3 critical bugs in authentication flow for external users. All 16 backend tests pass (100%). Frontend LMS page loads correctly for external users with standalone view.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Auth Dialog",
+        "issues": ["Console warning: Missing Description or aria-describedby for DialogContent (accessibility)"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_external_lms.py",
+    "/app/test_reports/pytest/external_lms_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Email sending (AWS SES) is MOCKED - verification_token returned in API response for testing",
+    "Turnstile CAPTCHA uses test key that always validates"
+  ],
+  "updated_files": [
+    "/app/backend/routers/auth.py",
+    "/app/frontend/src/context/AuthContext.js",
+    "/app/frontend/src/App.js",
+    "/app/backend/tests/test_external_lms.py"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% (LMS page loads correctly)"
+  },
+  "bugs_fixed": [
+    {
+      "description": "get_current_user_optional did not check external_user_sessions collection",
+      "file": "/app/backend/routers/auth.py",
+      "fix": "Added check for external_user_sessions in addition to user_sessions"
+    },
+    {
+      "description": "/auth/google/check endpoint only checked user_sessions (staff users), not external_user_sessions",
+      "file": "/app/backend/routers/auth.py",
+      "fix": "Updated endpoint to check both user_sessions and external_user_sessions, return user_type and redirect_url"
+    },
+    {
+      "description": "ExternalLMSPage was inside Layout wrapper, showing admin sidebar for external users",
+      "file": "/app/frontend/src/App.js",
+      "fix": "Moved /nurture/lms route outside the Layout wrapper for standalone external LMS view"
+    },
+    {
+      "description": "SmartHomeRoute did not differentiate between staff and external users",
+      "file": "/app/frontend/src/App.js",
+      "fix": "Added userType check to redirect external users to /nurture/lms instead of /focus"
+    },
+    {
+      "description": "AuthContext did not store or expose userType",
+      "file": "/app/frontend/src/context/AuthContext.js",
+      "fix": "Added userType state and exposed it in context provider"
+    }
+  ],
+  "test_credentials": {
+    "test_external_email": "testlms@example.com",
+    "test_password": "TestPassword123",
+    "turnstile_test_token": "test_token"
+  },
+  "seed_data_creation": "Created test external user testlms@example.com with course enrollment for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "External LMS feature fully tested and working. External users authenticate via email/password, get redirected to /nurture/lms, and see standalone LMS view with their enrolled courses. Endpoints: GET /api/lms/external/my-courses, GET /api/lms/external/courses/{id}, GET /api/lms/external/progress/{id}, POST /api/lms/external/progress/{id}/complete/{lesson_id}",
+  "features_verified": {
+    "GET /api/lms/external/my-courses": {
+      "status": "PASS",
+      "tests": [
+        "Returns 401 without auth",
+        "Returns enrolled courses for authenticated user"
+      ]
+    },
+    "GET /api/lms/external/courses/{course_id}": {
+      "status": "PASS",
+      "tests": [
+        "Returns 401 without auth",
+        "Returns 403 when not enrolled",
+        "Returns course details with lessons when enrolled"
+      ]
+    },
+    "GET /api/lms/external/progress/{course_id}": {
+      "status": "PASS",
+      "tests": [
+        "Returns 401 without auth",
+        "Returns progress data (0% for new user)"
+      ]
+    },
+    "POST /api/lms/external/progress/{course_id}/complete/{lesson_id}": {
+      "status": "PASS",
+      "tests": [
+        "Returns 401 without auth",
+        "Marks lesson as complete",
+        "Updates progress percentage",
+        "Idempotent - same lesson not double counted"
+      ]
+    },
+    "Frontend ExternalLMSPage": {
+      "status": "PASS",
+      "tests": [
+        "External user redirected to /nurture/lms on login",
+        "Standalone page without admin sidebar",
+        "Shows user info and enrolled courses",
+        "Shows stats (courses, completed, duration)"
+      ]
+    },
+    "Authentication Flow": {
+      "status": "PASS",
+      "tests": [
+        "External user login sets session cookie",
+        "Session cookie authenticated via /auth/google/check",
+        "userType=external stored in AuthContext",
+        "SmartHomeRoute redirects to /nurture/lms for external users"
+      ]
+    }
+  },
+  "mocked_components": {
+    "email_verification": "MOCKED - No real emails sent. verification_token returned in API for testing",
+    "turnstile_captcha": "Using test key (1x00000000000000000000AA) that always validates"
+  }
+}

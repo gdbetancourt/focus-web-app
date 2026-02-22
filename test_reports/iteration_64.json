@@ -1,0 +1,93 @@
+{
+  "summary": "Backend testing for Case-Level Role Assignment Bug Fixes - All 17 tests PASSED. All four user-reported bugs verified as fixed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_case_level_roles.py",
+    "/app/test_reports/pytest/case_level_roles_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ALL FOUR BUG FIXES VERIFIED:",
+    "BUG 1: Roles not reflected in grouping - FIXED: PUT /api/todays-focus/case-roles correctly saves to case_contact_roles collection",
+    "BUG 2: Sticky/ghost roles - FIXED: Endpoint deletes ALL existing roles before inserting new ones (lines 274-291 in todays_focus.py)",
+    "BUG 3: Cannot delete all roles - FIXED: Sending roles=[] clears all case-level roles (delete_result.deleted_count reported)",
+    "BUG 4: Multi-role grouping - FIXED: Contact with ['coachee', 'deal_maker'] returns both in case_roles array",
+    "VERIFIED: Test contact Kathia Lira (6958db72-e0ee-45f4-b143-3638cf1426a0) has case_roles=['coachee', 'deal_maker'] in case 965ead56-a20c-491a-b5b7-a37c8c5aaca9"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_case_level_roles.py - NEW: 17 test cases for case-level role assignment"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 tests passed)",
+    "frontend": "N/A (backend only testing)"
+  },
+  "test_credentials": "JWT token with sub=unified-crm-redesign (admin_contact_id)",
+  "seed_data_creation": "None - testing with existing contact Kathia Lira",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Case-level role assignment fully verified. Key implementation: (1) PUT /api/todays-focus/case-roles deletes existing roles then inserts new ones, (2) GET /api/cases/by-contact/{id} queries case_contact_roles and returns case_roles array, (3) GET /api/cases/delivery/ganados includes case_roles for each contact. Test contact Kathia Lira has multi-role assignment working correctly.",
+  "verified_endpoints": {
+    "PUT /api/todays-focus/case-roles": {
+      "status": "PASS",
+      "tests_passed": [
+        "test_set_single_role",
+        "test_set_multiple_roles", 
+        "test_delete_all_roles_empty_array",
+        "test_role_replacement_not_append",
+        "test_invalid_role_rejected",
+        "test_nonexistent_contact_rejected",
+        "test_nonexistent_case_rejected"
+      ]
+    },
+    "GET /api/cases/by-contact/{contact_id}": {
+      "status": "PASS",
+      "tests_passed": [
+        "test_endpoint_returns_200",
+        "test_cases_have_case_roles_array",
+        "test_empty_case_roles_after_deletion"
+      ]
+    },
+    "GET /api/cases/delivery/ganados": {
+      "status": "PASS",
+      "tests_passed": [
+        "test_endpoint_returns_200",
+        "test_contacts_have_case_roles",
+        "test_multi_role_contact_grouping"
+      ]
+    }
+  },
+  "bug_fix_verification": {
+    "bug_1_roles_not_reflected": {
+      "description": "Roles not reflected in grouping after saving",
+      "root_cause": "Frontend not calling onSaved() callback after saving roles",
+      "fix_location": "frontend/src/components/ContactSheet.jsx saveCaseRoles function",
+      "backend_verification": "PASS - case_roles correctly saved and returned"
+    },
+    "bug_2_sticky_ghost_roles": {
+      "description": "Sticky/ghost roles reappearing after deletion",
+      "root_cause": "Previous roles not being deleted before inserting new ones",
+      "fix_location": "backend/routers/todays_focus.py lines 274-278 - DELETE before INSERT",
+      "backend_verification": "PASS - test_role_replacement_not_append confirms replacement behavior"
+    },
+    "bug_3_cannot_delete_all": {
+      "description": "Cannot delete all roles (sending roles=[])",
+      "root_cause": "Empty array handling",
+      "fix_location": "backend/routers/todays_focus.py - roles=[] deletes all, inserts none",
+      "backend_verification": "PASS - test_delete_all_roles_empty_array confirms deletion"
+    },
+    "bug_4_multi_role_grouping": {
+      "description": "Multi-role grouping not working",
+      "root_cause": "Frontend grouping logic not handling multiple roles",
+      "fix_location": "frontend/src/utils/roleMapping.js getGroupsForRoles function",
+      "backend_verification": "PASS - case_roles=['coachee', 'deal_maker'] correctly returned"
+    }
+  }
+}

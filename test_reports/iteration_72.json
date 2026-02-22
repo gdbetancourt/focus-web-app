@@ -1,0 +1,81 @@
+{
+  "summary": "P1 Deprecación Testing Complete - Verified deprecated HubSpot endpoints are correctly marked in OpenAPI spec and still function (backward compatibility). Contacts.jsx does not use syncHubSpotContacts.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_deprecated_hubspot_endpoints.py",
+    "/app/test_reports/pytest/deprecated_hubspot_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Contacts.jsx is imported in App.js but not rendered in any Route - the page at /focus/assets/contacts uses AllContacts.jsx via ContactsAssetPage",
+    "syncHubSpotContacts function still exists in api.js (line 44) but is not used by any component - can be removed in future cleanup"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_deprecated_hubspot_endpoints.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% (verified via code review)"
+  },
+  "seed_data_creation": "No seed data created - used existing data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Session token ebb002fc-685e-4806-bb8b-08ad63f2811e still valid. Deprecated endpoints verified working with backward compatibility.",
+  "verified_features": {
+    "GET_api_hubspot_contacts_deprecated_flag": {
+      "status": "PASS",
+      "notes": "Correctly marked as deprecated=True in OpenAPI spec"
+    },
+    "POST_api_hubspot_sync_deprecated_flag": {
+      "status": "PASS", 
+      "notes": "Correctly marked as deprecated=True in OpenAPI spec"
+    },
+    "GET_api_hubspot_companies_deprecated_flag": {
+      "status": "PASS",
+      "notes": "Correctly marked as deprecated=True in OpenAPI spec"
+    },
+    "GET_api_hubspot_contacts_backward_compatibility": {
+      "status": "PASS",
+      "notes": "Endpoint returns data (2000+ contacts) - backward compatible"
+    },
+    "GET_api_hubspot_companies_backward_compatibility": {
+      "status": "PASS",
+      "notes": "Endpoint returns company data with is_active field for backward compatibility"
+    },
+    "POST_api_hubspot_sync_backward_compatibility": {
+      "status": "PASS",
+      "notes": "Endpoint responds (may timeout due to HubSpot API calls but doesn't error)"
+    },
+    "Contacts_jsx_no_syncHubSpotContacts": {
+      "status": "PASS",
+      "notes": "Verified Contacts.jsx handleSync() does NOT call syncHubSpotContacts, only reloads via getUnifiedContacts()"
+    },
+    "Contacts_jsx_Actualizar_button": {
+      "status": "PASS",
+      "notes": "handleSync() calls loadContacts() which uses getUnifiedContacts() - correctly reloads contacts"
+    },
+    "deprecation_warnings_in_code": {
+      "status": "PASS",
+      "notes": "logger.warning() calls present at lines 398, 562, 1223 in legacy.py for deprecated endpoints"
+    },
+    "DEPRECATED_COLLECTIONS_md": {
+      "status": "PASS",
+      "notes": "Documentation file created with complete deprecation plan and archival steps"
+    }
+  },
+  "openapi_spec_verification": {
+    "hubspot_contacts_path": "/api/hubspot/contacts",
+    "hubspot_sync_path": "/api/hubspot/sync",
+    "hubspot_companies_path": "/api/hubspot/companies",
+    "migrate_from_hubspot_path": "/api/hubspot/companies/migrate-from-hubspot",
+    "all_deprecated_true": true
+  }
+}

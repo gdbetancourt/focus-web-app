@@ -1,0 +1,32 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- /root/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /app
+plugins: anyio-4.12.1
+collecting ... collected 15 items
+
+backend/tests/test_linkedin_import_v2_worker.py::TestV2WorkerIntegration::test_start_queues_job_for_worker PASSED [  6%]
+backend/tests/test_linkedin_import_v2_worker.py::TestV2WorkerIntegration::test_worker_picks_up_and_processes_job PASSED [ 13%]
+backend/tests/test_linkedin_import_v2_worker.py::TestBulkWriteOperations::test_bulk_operations_multiple_contacts PASSED [ 20%]
+backend/tests/test_linkedin_import_v2_worker.py::TestDeduplication::test_deduplication_by_email PASSED [ 26%]
+backend/tests/test_linkedin_import_v2_worker.py::TestDeduplication::test_deduplication_by_linkedin_url PASSED [ 33%]
+backend/tests/test_linkedin_import_v2_worker.py::TestConflictDetection::test_conflict_email_url_mismatch PASSED [ 40%]
+backend/tests/test_linkedin_import_v2_worker.py::TestProgressWithHeartbeat::test_progress_returns_heartbeat_data PASSED [ 46%]
+backend/tests/test_linkedin_import_v2_worker.py::TestProfileLock::test_profile_lock_prevents_concurrent_imports PASSED [ 53%]
+backend/tests/test_linkedin_import_v2_worker.py::TestBuyerPersonaClassification::test_buyer_persona_classification_runs PASSED [ 60%]
+backend/tests/test_linkedin_import_v2_worker.py::TestOrphanJobRecovery::test_orphan_job_recovery_logic PASSED [ 66%]
+backend/tests/test_linkedin_import_v2_worker.py::TestEndpointValidations::test_upload_rejects_empty_csv PASSED [ 73%]
+backend/tests/test_linkedin_import_v2_worker.py::TestEndpointValidations::test_start_requires_valid_mapping PASSED [ 80%]
+backend/tests/test_linkedin_import_v2_worker.py::TestEndpointValidations::test_progress_returns_404_for_invalid_job PASSED [ 86%]
+backend/tests/test_linkedin_import_v2_worker.py::TestEndpointValidations::test_conflicts_returns_404_for_invalid_job PASSED [ 93%]
+backend/tests/test_linkedin_import_v2_worker.py::TestV2WorkerStatus::test_worker_is_running PASSED [100%]
+
+=============================== warnings summary ===============================
+backend/tests/test_linkedin_import_v2_worker.py::TestV2WorkerIntegration::test_start_queues_job_for_worker
+  /root/.venv/lib/python3.11/site-packages/_pytest/python.py:170: PytestReturnNotNoneWarning: Test functions should return None, but backend/tests/test_linkedin_import_v2_worker.py::TestV2WorkerIntegration::test_start_queues_job_for_worker returned <class 'str'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 15 passed, 1 warning in 111.17s (0:01:51) ===================

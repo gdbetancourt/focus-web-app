@@ -1,0 +1,88 @@
+{
+  "timestamp": "2026-02-19T03:10:03.068366+00:00",
+  "collections": {
+    "active_companies": {
+      "total": 298,
+      "is_active_true": 295,
+      "is_active_false": 3,
+      "is_merged": 5,
+      "total_searches": 0,
+      "total_aliases": 0
+    },
+    "hubspot_companies": {
+      "total": 5880,
+      "is_merged": 2,
+      "with_domain": 5872
+    },
+    "companies": {
+      "total": 15767,
+      "is_active_true": 15767,
+      "is_active_false": 0
+    },
+    "unified_contacts": {
+      "total": 39380,
+      "with_company_string": 34742,
+      "with_company_id": 2937,
+      "with_companies_array": 5993
+    },
+    "industries": {
+      "total": 10,
+      "list": [
+        {
+          "id": "239cf28b-a2d8-4272-9ffb-8e733377ba21",
+          "code": "pharma",
+          "name": "Pharmaceutical"
+        },
+        {
+          "id": "5799cdf1-d692-4b65-84f2-199e7eb225f7",
+          "code": "medical_devices",
+          "name": "Medical Devices"
+        },
+        {
+          "id": "32725952-fa96-46d7-900a-0a5e8d773ea7",
+          "code": "biotech",
+          "name": "Biotechnology"
+        },
+        {
+          "id": "871b254d-9324-4025-a7b9-9f28d831599d",
+          "code": "healthcare",
+          "name": "Healthcare Services"
+        },
+        {
+          "id": "6fc36a8c-0c72-49bd-bcf5-804b8edca807",
+          "code": "health_insurance",
+          "name": "Health Insurance"
+        },
+        {
+          "id": "283627b8-4690-40de-a08d-13f7f6c2d403",
+          "code": "diagnostics",
+          "name": "Diagnostics & Labs"
+        },
+        {
+          "id": "017475fd-b537-4dfd-968d-018ea54cfe5b",
+          "code": "digital_health",
+          "name": "Digital Health"
+        },
+        {
+          "id": "7b591d0c-5e10-44b9-bd12-d72eeafeec1b",
+          "code": "cro_cmo",
+          "name": "CRO/CMO"
+        },
+        {
+          "id": "9f712064-b97b-493d-be6e-2719c96817a7",
+          "code": "nutrition",
+          "name": "Nutrition & Supplements"
+        },
+        {
+          "id": "0ec2b053-651b-4a58-8fa2-bb72d3297486",
+          "code": "consumer_health",
+          "name": "Consumer Health"
+        }
+      ]
+    },
+    "cases": {
+      "total": 499,
+      "stage_ganados": 11
+    }
+  }
+}

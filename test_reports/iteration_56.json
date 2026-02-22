@@ -1,0 +1,118 @@
+{
+  "summary": "Phase 8 (Auto-Merge by Domain) testing completed. All 18 backend tests pass (100%). Frontend UI working correctly with all features verified: stats display, preview table, dry-run execution, history, and confirmation dialog.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auto_merge_domain.py",
+    "/app/test_reports/pytest/auto_merge_domain_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed duplicate company entries in find_duplicate_domains() - companies with multiple domains were being added multiple times to the same group",
+    "Added data-testid attributes to AutoMergeDomainPanel.jsx for better testing: auto-merge-panel, auto-merge-stats-card, preview-btn, history-btn, execute-auto-merge-btn",
+    "Fixed React key warning by using index as part of key for map iterations with potentially duplicate IDs"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auto_merge_domain.py - Created comprehensive test suite for Phase 8 endpoints",
+    "/app/backend/services/company_auto_merge.py - Fixed duplicate company deduplication in find_duplicate_domains()",
+    "/app/frontend/src/components/AutoMergeDomainPanel.jsx - Added data-testid attributes, fixed duplicate key warnings"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18 tests passed)",
+    "frontend": "100% (all UI features working)"
+  },
+  "test_credentials": {
+    "test_session_token": "teststaff_jRpK6_PrQ_IboZOMBMUOdjGBBXAarHlrMzsly06s6Xo",
+    "test_user_email": "perla@leaderlix.com"
+  },
+  "seed_data_creation": "None required - used existing duplicate companies in production database",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase 8 Auto-Merge by Domain is fully functional. Tested endpoints: GET /api/companies/auto-merge/stats, GET /api/companies/auto-merge/preview, POST /api/companies/auto-merge/run (dry_run=true), GET /api/companies/auto-merge/history. Frontend AutoMergeDomainPanel.jsx works correctly with all buttons, stats display, preview table, and confirmation dialog. Cookie-based authentication required for all endpoints.",
+  "features_verified": {
+    "GET /api/companies/auto-merge/stats": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication (401 without session cookie)",
+        "Returns duplicate_domain_groups count",
+        "Returns total_companies_with_duplicates count",
+        "Returns potential_merges count",
+        "Returns top_duplicate_domains array with domain and count"
+      ]
+    },
+    "GET /api/companies/auto-merge/preview": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication",
+        "Returns groups array with domain, company_count, primary, secondaries",
+        "Respects limit parameter",
+        "Primary company has id, name, score",
+        "Secondaries array has company objects with id, name, score"
+      ]
+    },
+    "POST /api/companies/auto-merge/run (dry_run=true)": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication",
+        "Returns operation_id, operation_type, run_at, dry_run flag",
+        "Returns merges_performed count",
+        "Returns merge_details array with domain, primary_id, primary_name, secondary_id, secondary_name",
+        "Respects max_merges parameter",
+        "Does not modify data in dry_run mode",
+        "Default dry_run is True when not specified"
+      ]
+    },
+    "GET /api/companies/auto-merge/history": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication",
+        "Returns operations array",
+        "Returns count",
+        "Respects limit parameter"
+      ]
+    },
+    "Frontend AutoMergeDomainPanel": {
+      "status": "PASS",
+      "tests": [
+        "Stats card displays duplicate_domain_groups, total_companies_with_duplicates, potential_merges",
+        "Top duplicate domains badges displayed (amgen.com.mx, janssen.com, bayer.com, gsk.com, gilead.com)",
+        "Ver Preview button loads and displays preview table",
+        "Preview table shows domain, company count, primary, secondaries",
+        "Historial button loads history",
+        "Ejecutar Auto-Merge button triggers dry run and shows confirmation dialog",
+        "Confirmation dialog shows warning, merge count, contact update count, example merges",
+        "Cancelar button closes dialog",
+        "data-testid attributes added for all key elements"
+      ]
+    }
+  },
+  "bug_fixes_applied": {
+    "duplicate_company_in_groups": {
+      "issue": "Companies with multiple domains were being added multiple times to the same domain group",
+      "root_cause": "find_duplicate_domains() iterates through all domains of a company and adds it to each domain group, but didn't deduplicate",
+      "fix": "Added deduplication by _company_id before returning domain groups",
+      "file": "/app/backend/services/company_auto_merge.py"
+    },
+    "react_duplicate_key_warning": {
+      "issue": "Console warning 'Encountered two children with the same key' for duplicate company IDs",
+      "root_cause": "map() key was using only s.id which could be duplicated",
+      "fix": "Changed key to include index: key={`${s.id}-${idx}`}",
+      "file": "/app/frontend/src/components/AutoMergeDomainPanel.jsx"
+    }
+  },
+  "data_testid_added": [
+    "auto-merge-panel - Main panel container",
+    "auto-merge-stats-card - Stats card",
+    "preview-btn - Ver Preview button",
+    "history-btn - Historial button",
+    "execute-auto-merge-btn - Ejecutar Auto-Merge button",
+    "tab-auto-merge - Already existed in CompaniesPage.jsx"
+  ]
+}

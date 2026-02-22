@@ -1,0 +1,84 @@
+{
+  "summary": "Backend testing complete for companies.py migration to unified_companies collection. All 20 API tests passed (100% success rate). The migration removed 44 legacy collection references and now uses unified_companies as the single source of truth.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "N/A - code quality",
+        "issue": "Outdated docstring in /app/backend/routers/companies.py lines 1-7 still says 'This router still uses legacy collections' when the migration is complete",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_companies_router_migration.py",
+    "/app/test_reports/pytest/companies_router_migration_results.xml"
+  ],
+  "action_items": [
+    "Update docstring in /app/backend/routers/companies.py (lines 1-7) to reflect completed migration to unified_companies"
+  ],
+  "critical_code_review_comments": [
+    "All endpoints now correctly query unified_companies with is_merged: {'$ne': True} filter",
+    "No references to legacy collections (hubspot_companies, active_companies, companies) found in companies.py",
+    "Helper function _find_company_by_id searches unified_companies only (lines 1227-1244)",
+    "All CRUD operations (list, search, detail, create, update) use unified_companies collection"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_companies_router_migration.py"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "N/A - backend only testing requested"
+  },
+  "seed_data_creation": "No seed data created - tests use existing session token",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Companies router migration to unified_companies is complete and verified. All 8 requested endpoints tested and working: GET /api/companies, GET /api/companies/search, GET /api/companies/{id}/detail, POST /api/companies, PUT /api/companies/{id}, GET /api/companies/merge-candidates/semaphore, GET /api/companies/merge-candidates/cache-status, GET /api/focus/traffic-light-status (merge-companies section).",
+  "verified_features": {
+    "1_list_companies": {
+      "status": "PASS",
+      "endpoint": "GET /api/companies",
+      "details": "Returns companies list with pagination, search filter works"
+    },
+    "2_search_companies": {
+      "status": "PASS", 
+      "endpoint": "GET /api/companies/search?q=test",
+      "details": "Search works with minimum 2 char query, exclude_id parameter works"
+    },
+    "3_company_detail": {
+      "status": "PASS",
+      "endpoint": "GET /api/companies/{id}/detail",
+      "details": "Returns company, contacts, cases, stats; 404 for invalid ID"
+    },
+    "4_create_company": {
+      "status": "PASS",
+      "endpoint": "POST /api/companies",
+      "details": "Creates new company in unified_companies, returns existing if duplicate name"
+    },
+    "5_update_company": {
+      "status": "PASS",
+      "endpoint": "PUT /api/companies/{id}",
+      "details": "Updates company fields, 404 for invalid ID"
+    },
+    "6_merge_semaphore": {
+      "status": "PASS",
+      "endpoint": "GET /api/companies/merge-candidates/semaphore",
+      "details": "Returns valid status (red/yellow/green/gray), pending count, week info"
+    },
+    "7_cache_status": {
+      "status": "PASS",
+      "endpoint": "GET /api/companies/merge-candidates/cache-status",
+      "details": "Returns cache_exists, domain_count, name_count, needs_refresh"
+    },
+    "8_traffic_light": {
+      "status": "PASS",
+      "endpoint": "GET /api/focus/traffic-light-status",
+      "details": "merge-companies section returns valid status (tested as yellow)"
+    }
+  }
+}

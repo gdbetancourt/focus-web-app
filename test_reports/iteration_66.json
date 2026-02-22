@@ -1,0 +1,101 @@
+{
+  "summary": "Unified Companies Migration Testing - All 16 tests PASSED. Verified migration from active_companies/companies to unified_companies collection with classification field (inbound/outbound).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_unified_companies_migration.py",
+    "/app/test_reports/pytest/unified_companies_migration_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "MIGRATION VERIFIED - All unified_companies endpoints working correctly:",
+    "1. GET /api/unified-companies - Lists companies with classification field (12,667 total)",
+    "2. GET /api/unified-companies/outbound - Returns only outbound companies (3 total)",
+    "3. GET /api/unified-companies/search - Search works with classification filter",
+    "4. POST /api/unified-companies - Create company with classification",
+    "5. PATCH /api/unified-companies/{id}/classification - Toggle inbound/outbound",
+    "6. GET /api/prospection/companies/all - Returns from unified_companies with is_active backward compat",
+    "7. GET /api/prospection/active-companies - Works with unified_companies as primary source",
+    "8. PATCH /api/prospection/companies/{id}/toggle-active - Toggles classification",
+    "9. Case stage change to Stage 4 - Creates/updates company in unified_companies (code verified)",
+    "10. Contact stage change to 4/5 - Creates/updates company in unified_companies (code verified)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_unified_companies_migration.py - NEW: 16 test cases for unified companies migration"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "N/A (backend only testing requested)"
+  },
+  "test_credentials": "Session token: test_session_6gxa1S6v3fIOTHk44sLNNvtI-ZcylD8USEGujgos5Ek for test@leaderlix.com",
+  "seed_data_creation": "Created test session for existing test user (test@leaderlix.com)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Unified companies migration complete. 12,667 companies in unified_companies collection. Key endpoints all working: /api/unified-companies (CRUD + classification + propagation), /api/prospection/companies/all (backward compat with is_active). Test companies prefixed with TEST_MIGRATION_ were created during testing.",
+  "verified_endpoints": {
+    "GET /api/unified-companies": {
+      "status": "PASS",
+      "total_companies": 12667,
+      "description": "Lists companies with classification field"
+    },
+    "GET /api/unified-companies/outbound": {
+      "status": "PASS",
+      "total_outbound": 3,
+      "description": "Returns only outbound companies"
+    },
+    "GET /api/unified-companies/search": {
+      "status": "PASS",
+      "description": "Search companies by name/domain"
+    },
+    "GET /api/unified-companies/{id}": {
+      "status": "PASS",
+      "description": "Get company by ID"
+    },
+    "POST /api/unified-companies": {
+      "status": "PASS",
+      "description": "Create new company with classification"
+    },
+    "PATCH /api/unified-companies/{id}": {
+      "status": "PASS",
+      "description": "Update company fields"
+    },
+    "PATCH /api/unified-companies/{id}/classification": {
+      "status": "PASS",
+      "description": "Toggle classification inbound/outbound"
+    },
+    "GET /api/unified-companies/{id}/propagation-preview": {
+      "status": "PASS",
+      "description": "Preview affected contacts for propagation"
+    },
+    "GET /api/unified-companies/{id}/activities": {
+      "status": "PASS",
+      "description": "Get company activity history"
+    },
+    "GET /api/prospection/companies/all": {
+      "status": "PASS",
+      "description": "Returns from unified_companies with is_active backward compat"
+    },
+    "GET /api/prospection/active-companies": {
+      "status": "PASS",
+      "total": 257,
+      "description": "Works with unified_companies as primary source"
+    },
+    "PATCH /api/prospection/companies/{id}/toggle-active": {
+      "status": "PASS",
+      "description": "Toggles classification and returns both is_active and classification"
+    }
+  },
+  "migration_status": {
+    "unified_companies_count": 12667,
+    "outbound_count": 3,
+    "classification_field": "present on all companies",
+    "backward_compatibility": "is_active field mapped from classification for legacy code"
+  }
+}

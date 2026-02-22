@@ -1,0 +1,93 @@
+# CAMBIOS EXTRAÍDOS DE Cambios.docx
+# Fecha de extracción: Diciembre 2025
+
+## RESUMEN DE TAREAS (40+ items)
+
+### ALTA PRIORIDAD (P0):
+
+1. **Mensajes de Hoy > Email: Reglas E1-E4 + Gemini + Gmail API**
+   - E1: Invitación a webinar (Paso 2/Nurturing) - contactos no registrados
+   - E2: Seguimiento cotización (Paso 3/Close)
+   - E3: Recordatorio coaching (Paso 4/Delivery + Students)
+   - E4: Repurchase cada 3 meses (Paso 5)
+   - UI: tabla única E1-E4 con preview, editor, envío Gmail API
+   - Cadencias: 7 días / 90 días por tipo
+
+2. **"Editar Contacto" en todas las listas principales**
+   - Agregar icono Edit en cada fila de contacto
+   - Reutilizar modal existente de contacto
+   - Actualizar solo fila editada sin refresh completo
+
+3. **Eliminar "Newsletter" de Mensajes de Hoy**
+   - Remover tab/canal Newsletter
+   - Renombrar sidebar "Newsletters (En Mensajes)" → "Newsletters" apuntando a Nurturing
+
+4. **UI en INGLÉS (global)**
+   - Todo Focus en inglés excepto datos de BD/usuario
+   - No selector de idioma
+
+5. **Semáforos: Cobertura 100% + Herencia jerárquica**
+   - Criterios explícitos por pestaña
+   - Herencia: rojo > amarillo > verde > gris
+
+### PRIORIDAD MEDIA (P1):
+
+6. **Apify Credits Status - Fix en 1.1.1.1/1.1.1.2/1.1.1.3**
+   - Corregir valor mostrado
+   - Fallback "Insufficient Apify credits"
+
+7. **1.1.2 Via Google Maps - Quitar alerta Apify incorrecta**
+
+8. **1.3.1 Deal Makers - Quitar alerta Apify (no aplica)**
+
+9. **Buyer Persona Default = "Mateo"**
+   - Eliminar grupo "Unclassified"
+   - Default automático para todos los contactos sin buyer persona
+   - Backfill de existentes
+
+10. **1.3.4 Social Media Followers - Reset diario + Historial + Quitar "Soon"**
+
+11. **Home hero slider - Quitar microtítulo/pill ("Science")**
+
+12. **Header website - Eliminar menú de navegación globalmente**
+
+13. **Events - Actualizar look & feel + Integrar en Home y LMS**
+
+14. **LMS Learning Center - Fix layout margins**
+
+15. **LMS Thumbnails - Solo autogenerados con Nanobanana**
+
+16. **Testimonials - Anti-copia + noindex**
+
+### PRIORIDAD BAJA (P2):
+
+17. **Logo correcto + Animación isotipo**
+
+18. **Home - Animación progresión niveles (Aspirante → Maestro)**
+
+19. **Home - Video testimonial + Admin upload en 2.2.1**
+
+20. **2.2.4 Newsletters - Sistema automático lunes**
+    - Rotación general/buyer persona
+    - Contenido: blogpost + CTA webinar
+
+21. **Unificar 2.2.4 + 2.2.4.1 (Email Metrics)**
+
+22. **2.2.5 LMS - Thumbnail solo Nanobanana (eliminar upload)**
+
+23. **2.2.6 Blog - Fix "Error loading blog data"**
+
+24. **Preview en subdominio Porkbun**
+
+25. **iOS Shortcuts webhook → Pending Ideas (2.2.6.1)**
+
+26. **2.2.6.1 Dictation - Pipeline completo one-click**
+    - Clean + Slides + Blog ES/EN + Auto-publish
+
+27. **2.2.6.1 Content Pipeline - Eliminar tabs LinkedIn/Blog/Video**
+    - Video como panel post-publicación
+
+28. **Eliminar 2.2.6.2 Video Processing (mover a 2.2.6.1)**
+
+29. **Eliminar 2.2.14 Hero Countdown**
+    - Countdown en Home apuntando a último lunes del mes

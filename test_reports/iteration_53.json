@@ -1,0 +1,99 @@
+{
+  "summary": "Phase 4 (Alias & Consolidation) backend testing completed. All 21 tests pass (100%). Endpoints verified: GET /api/companies/search, POST /api/companies/merge, PUT /api/companies/{company_id}",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_company_alias_merge.py",
+    "/app/test_reports/pytest/company_alias_merge_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_company_alias_merge.py - Created comprehensive test suite for Phase 4 endpoints"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21 tests passed)",
+    "frontend": "Not tested (backend only request)"
+  },
+  "test_credentials": {
+    "test_session_token": "teststaff_jRpK6_PrQ_IboZOMBMUOdjGBBXAarHlrMzsly06s6Xo",
+    "test_user_email": "perla@leaderlix.com"
+  },
+  "seed_data_creation": "None required - used existing company data for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase 4 Company Alias & Merge endpoints are fully functional. Test coverage includes: search companies (with auth validation, minimum query length, search by name/domain/alias), update company with aliases (CRUD operations), merge two companies (validation for same ID, non-existent companies, request format), list companies, company detail. Cookie-based authentication using session_token cookie is required for all endpoints.",
+  "features_verified": {
+    "GET /api/companies/search": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication (401 without session cookie)",
+        "Returns empty for queries < 2 characters",
+        "Searches by company name",
+        "Searches by domain",
+        "Searches by alias (verified: searching 'Amgen MX' finds 'Amgen')",
+        "Respects limit parameter",
+        "Excludes merged companies (is_merged != True)"
+      ]
+    },
+    "PUT /api/companies/{company_id}": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication",
+        "Updates company with aliases array",
+        "Preserves other fields when updating aliases",
+        "Returns 404 for non-existent company",
+        "Returns success response with old_name, new_name, contacts_updated, cases_updated"
+      ]
+    },
+    "POST /api/companies/merge": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication",
+        "Rejects when primary_id == secondary_id (400: 'No se puede combinar una empresa consigo misma')",
+        "Returns 404 for non-existent primary company",
+        "Returns 404 for non-existent secondary company",
+        "Validates request format (422 for missing primary_id/secondary_id)"
+      ]
+    },
+    "GET /api/companies": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication",
+        "Returns paginated results with total count",
+        "Accepts search filter parameter"
+      ]
+    },
+    "GET /api/companies/{company_id}/detail": {
+      "status": "PASS",
+      "tests": [
+        "Requires authentication",
+        "Returns company data with contacts, cases, stats",
+        "Returns aliases field in company object"
+      ]
+    }
+  },
+  "integration_flow_verified": {
+    "full_alias_workflow": {
+      "status": "PASS",
+      "steps": [
+        "1. Search for company",
+        "2. Get company detail with current aliases",
+        "3. Add new alias via PUT request",
+        "4. Verify alias was saved in company detail",
+        "5. Search by new alias returns the company"
+      ]
+    }
+  },
+  "manual_verification_performed": {
+    "alias_save_and_search": "Added aliases ['Amgen Mexico', 'Amgen MX'] to company 6183958800 (Amgen), verified they were saved, verified search by 'Amgen MX' returns 'Amgen'",
+    "merge_validation": "Confirmed merge endpoint rejects same ID, non-existent companies, and missing fields with appropriate error messages in Spanish"
+  }
+}
