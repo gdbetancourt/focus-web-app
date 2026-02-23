@@ -97,6 +97,7 @@ export default function PharmaPipelines() {
   const [companyStats, setCompanyStats] = useState({});
   const [companyFilter, setCompanyFilter] = useState("all"); // all, with_research, without_research, with_url, without_url
   const [companySearch, setCompanySearch] = useState("");
+  const [classificationMode, setClassificationMode] = useState("official"); // official | detected | all
   const [showAddCompany, setShowAddCompany] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
   const [newCompany, setNewCompany] = useState({ 
@@ -127,6 +128,10 @@ export default function PharmaPipelines() {
   useEffect(() => {
     loadMedications();
   }, [medicationFilters]);
+
+  useEffect(() => {
+    loadCompanies();
+  }, [classificationMode]);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -163,9 +168,14 @@ export default function PharmaPipelines() {
 
   const loadCompanies = async () => {
     try {
-      const res = await api.get("/scrappers/pharma/companies");
+      const params = new URLSearchParams();
+      params.set("classification_mode", classificationMode);
+      const res = await api.get(`/scrappers/pharma/companies?${params.toString()}`);
       setCompanies(res.data.companies || []);
-      setCompanyStats(res.data.stats || {});
+      setCompanyStats({
+        ...(res.data.stats || {}),
+        classification_mode: res.data.classification_mode || classificationMode,
+      });
     } catch (error) {
       console.error("Error loading companies:", error);
     }
@@ -586,6 +596,18 @@ export default function PharmaPipelines() {
                   />
                 </div>
                 
+                {/* Classification mode */}
+                <Select value={classificationMode} onValueChange={setClassificationMode}>
+                  <SelectTrigger className="w-[190px] bg-[#0f0f0f] border-[#333] text-white">
+                    <SelectValue placeholder="Classification" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="official">Official (canonical)</SelectItem>
+                    <SelectItem value="detected">Detected only</SelectItem>
+                    <SelectItem value="all">All (official + detected)</SelectItem>
+                  </SelectContent>
+                </Select>
+
                 {/* Filter dropdown */}
                 <Select value={companyFilter} onValueChange={setCompanyFilter}>
                   <SelectTrigger className="w-[180px] bg-[#0f0f0f] border-[#333] text-white">
@@ -678,6 +700,11 @@ export default function PharmaPipelines() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-white">{company.name}</span>
+                            {company.classification_source === "official" ? (
+                              <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">Official</Badge>
+                            ) : (
+                              <Badge className="bg-amber-500/20 text-amber-400 text-xs">Detected</Badge>
+                            )}
                             {company.source === "big_pharma" && (
                               <Badge className="bg-purple-500/20 text-purple-400 text-xs">Big Pharma</Badge>
                             )}
