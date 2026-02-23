@@ -19,7 +19,7 @@ const COMPANY_VISION = "We help bold leaders to communicate with impact so they 
  * Shows 52 weeks (weekly sections) or 90 days (daily sections)
  * Past periods are gray, current is colored based on status, future is gray
  */
-function TrafficLightHistory({ isDaily = false, currentStatus = "gray" }) {
+function TrafficLightHistory({ isDaily = false, currentStatus = "gray", historyStatuses = [] }) {
   const totalPeriods = isDaily ? 90 : 52;
   
   // Get week number for current date
@@ -65,15 +65,18 @@ function TrafficLightHistory({ isDaily = false, currentStatus = "gray" }) {
           const isPast = periodNumber < actualCurrentPeriod;
           const isCurrent = periodNumber === actualCurrentPeriod;
           const isFuture = periodNumber > actualCurrentPeriod;
+          const historicalStatus = historyStatuses[i];
+          const hasHistoricalStatus = Boolean(historicalStatus);
           
           return (
             <div
               key={i}
               className={cn(
                 "flex-1 h-5 rounded-sm transition-all min-w-[3px] max-w-[12px]",
-                isPast && "bg-slate-700",
-                isCurrent && getStatusColor(currentStatus),
-                isFuture && "bg-slate-800",
+                hasHistoricalStatus && getStatusColor(historicalStatus),
+                !hasHistoricalStatus && isPast && "bg-slate-700",
+                !hasHistoricalStatus && isCurrent && getStatusColor(currentStatus),
+                !hasHistoricalStatus && isFuture && "bg-slate-800",
                 isCurrent && "ring-1 ring-white/30"
               )}
               title={isDaily ? `Day ${periodNumber}` : `Week ${periodNumber}`}
@@ -204,6 +207,7 @@ export default function SectionLayout({
   trafficRules = {},
   isDaily = false,
   currentStatus = "gray",
+  historyStatuses = [],
   children,
   icon: Icon,
   inConstruction = false,
@@ -250,6 +254,7 @@ export default function SectionLayout({
           <TrafficLightHistory 
             isDaily={isDaily} 
             currentStatus={currentStatus} 
+            historyStatuses={historyStatuses}
           />
         </div>
       )}
