@@ -180,30 +180,7 @@ import ContentMatrix from "./pages/ContentMatrix";
 import NewsletterQueue from "./pages/NewsletterQueue";
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading, login } = useAuth();
-  const [loginLoading, setLoginLoading] = React.useState(false);
-  const [showLegacyLogin, setShowLegacyLogin] = React.useState(false);
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  
-  const handleGoogleLogin = () => {
-    const redirectUrl = window.location.origin + '/auth/callback';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
-  
-  const handleLegacyLogin = async (e) => {
-    e.preventDefault();
-    if (!email || !password) return;
-    setLoginLoading(true);
-    try {
-      await login(email, password);
-      // Page will re-render automatically after login sets user
-    } catch (err) {
-      console.error("Login error:", err);
-    } finally {
-      setLoginLoading(false);
-    }
-  };
+  const { user, loading } = useAuth();
   
   // Show loading state while checking auth
   if (loading) {

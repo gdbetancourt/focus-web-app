@@ -460,14 +460,20 @@ export default function PublicWebsite() {
       if (response.data.auth_url) {
         window.location.href = response.data.auth_url;
       } else {
-        // Fallback to Emergent Auth if direct OAuth not configured
-        const redirectUrl = window.location.origin + '/auth/callback';
-        window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+        const msg = lang === 'es'
+          ? 'No se pudo iniciar sesión con Google. Revisa configuración de GOOGLE_CLIENT_ID/SECRET.'
+          : 'Could not start Google login. Check GOOGLE_CLIENT_ID/SECRET configuration.';
+        setExternalLoginError(msg);
+        toast.error(msg);
       }
     } catch (error) {
-      // Fallback to Emergent Auth
-      const redirectUrl = window.location.origin + '/auth/callback';
-      window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+      const msg = error.response?.data?.detail || (
+        lang === 'es'
+          ? 'No se pudo iniciar sesión con Google. Intenta de nuevo.'
+          : 'Could not start Google login. Please try again.'
+      );
+      setExternalLoginError(msg);
+      toast.error(msg);
     }
   };
   
