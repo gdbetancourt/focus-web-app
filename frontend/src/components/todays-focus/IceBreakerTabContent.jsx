@@ -96,6 +96,128 @@ export function IceBreakerTabContent({ onEditContact, onAddLinkedin }) {
     });
   };
 
+  const getSearchGroup = (search) => {
+    const profile = (search?.prospected_by || "").toString().trim().toUpperCase();
+    if (profile === "GB") return "GB";
+    if (profile === "MG") return "MG";
+    return "UNASSIGNED";
+  };
+
+  const groupedSearches = searches.reduce(
+    (acc, search) => {
+      const group = getSearchGroup(search);
+      acc[group].push(search);
+      return acc;
+    },
+    { GB: [], MG: [], UNASSIGNED: [] }
+  );
+
+  const groupMeta = [
+    { key: "GB", label: "Perfil GB" },
+    { key: "MG", label: "Perfil MG" },
+    { key: "UNASSIGNED", label: "Sin perfil asociado" },
+  ];
+
+  const renderSearchCard = (search) => {
+    const isReady = search.is_ready && !search.is_done_this_cycle;
+    const isDone = search.is_done_this_cycle;
+    const isPending = !search.is_ready;
+
+    return (
+      <div
+        key={search.id}
+        className={`p-4 rounded-lg border transition-all ${
+          isDone
+            ? "bg-[#0a0a0a] border-[#1a1a1a] opacity-50"
+            : isReady
+              ? "bg-[#111] border-green-500/30 hover:border-green-500/50"
+              : "bg-[#0a0a0a] border-[#1a1a1a] opacity-60"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <Search className={`w-4 h-4 shrink-0 ${isReady ? "text-green-400" : "text-slate-500"}`} />
+              <span className={`font-medium truncate ${isReady ? "text-white" : "text-slate-400"}`}>
+                {search.keyword}
+              </span>
+              {search.prospected_by && (
+                <Badge variant="outline" className="border-[#333] text-slate-500 text-xs shrink-0">
+                  {search.prospected_by}
+                </Badge>
+              )}
+              {isDone && (
+                <Badge className="bg-blue-500/20 text-blue-400 text-xs shrink-0">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Hecho
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                <span className={isReady ? "text-slate-300" : "text-slate-500"}>
+                  {search.company_name}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {isReady ? (
+                  <>
+                    <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                    <span className="text-green-400">
+                      Listo (hace {search.days_since_prospected} días)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-slate-500">
+                      {formatDate(search.ready_date)} ({search.days_until_ready} días)
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
+            {isReady && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCopyUrl(search.url)}
+                  className="h-8 border-[#333] text-slate-400 hover:text-white"
+                  title="Copiar URL"
+                >
+                  <Copy className="w-3.5 h-3.5 mr-1" />
+                  Copiar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleMarkDone(search.id)}
+                  className="h-8 bg-green-600 hover:bg-green-700"
+                  title="Marcar como completado"
+                >
+                  <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                  Hecho
+                </Button>
+              </>
+            )}
+            {isPending && (
+              <Badge variant="outline" className="border-[#333] text-slate-500">
+                <Calendar className="w-3 h-3 mr-1" />
+                {formatDate(search.ready_date)}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4" data-testid="ice-breaker-tab">
       {/* Section Tabs */}
@@ -172,108 +294,28 @@ export function IceBreakerTabContent({ onEditContact, onAddLinkedin }) {
                   <p>Las búsquedas aparecerán aquí cuando las prospectes en el tab de Prospección.</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {searches.map((search) => {
-                    const isReady = search.is_ready && !search.is_done_this_cycle;
-                    const isDone = search.is_done_this_cycle;
-                    const isPending = !search.is_ready;
-                    
-                    return (
-                      <div 
-                        key={search.id}
-                        className={`p-4 rounded-lg border transition-all ${
-                          isDone 
-                            ? 'bg-[#0a0a0a] border-[#1a1a1a] opacity-50' 
-                            : isReady 
-                              ? 'bg-[#111] border-green-500/30 hover:border-green-500/50' 
-                              : 'bg-[#0a0a0a] border-[#1a1a1a] opacity-60'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          {/* Left side - Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Search className={`w-4 h-4 shrink-0 ${isReady ? 'text-green-400' : 'text-slate-500'}`} />
-                              <span className={`font-medium truncate ${isReady ? 'text-white' : 'text-slate-400'}`}>
-                                {search.keyword}
-                              </span>
-                              {search.prospected_by && (
-                                <Badge variant="outline" className="border-[#333] text-slate-500 text-xs shrink-0">
-                                  {search.prospected_by}
-                                </Badge>
-                              )}
-                              {isDone && (
-                                <Badge className="bg-blue-500/20 text-blue-400 text-xs shrink-0">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Hecho
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1.5">
-                                <Building2 className="w-3.5 h-3.5 text-blue-400" />
-                                <span className={isReady ? 'text-slate-300' : 'text-slate-500'}>
-                                  {search.company_name}
-                                </span>
-                              </div>
-                              
-                              <div className="flex items-center gap-1.5">
-                                {isReady ? (
-                                  <>
-                                    <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                                    <span className="text-green-400">
-                                      Listo (hace {search.days_since_prospected} días)
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Clock className="w-3.5 h-3.5 text-slate-500" />
-                                    <span className="text-slate-500">
-                                      {formatDate(search.ready_date)} ({search.days_until_ready} días)
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Right side - Actions */}
-                          <div className="flex items-center gap-2 ml-4">
-                            {isReady && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleCopyUrl(search.url)}
-                                  className="h-8 border-[#333] text-slate-400 hover:text-white"
-                                  title="Copiar URL"
-                                >
-                                  <Copy className="w-3.5 h-3.5 mr-1" />
-                                  Copiar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleMarkDone(search.id)}
-                                  className="h-8 bg-green-600 hover:bg-green-700"
-                                  title="Marcar como completado"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                                  Hecho
-                                </Button>
-                              </>
-                            )}
-                            {isPending && (
-                              <Badge variant="outline" className="border-[#333] text-slate-500">
-                                <Calendar className="w-3 h-3 mr-1" />
-                                {formatDate(search.ready_date)}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+                <div className="space-y-5">
+                  {groupMeta.map((group) => (
+                    <div key={group.key} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">
+                          {group.label}
+                        </h4>
+                        <Badge variant="outline" className="border-[#333] text-slate-400">
+                          {groupedSearches[group.key].length}
+                        </Badge>
                       </div>
-                    );
-                  })}
+                      {groupedSearches[group.key].length === 0 ? (
+                        <div className="p-3 rounded-lg border border-[#222] bg-[#0a0a0a] text-xs text-slate-500">
+                          Sin búsquedas en este grupo.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {groupedSearches[group.key].map(renderSearchCard)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
