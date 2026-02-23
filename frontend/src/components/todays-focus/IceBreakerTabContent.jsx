@@ -119,6 +119,10 @@ export function IceBreakerTabContent({ onEditContact, onAddLinkedin }) {
     { key: "UNASSIGNED", label: "Sin perfil asociado" },
   ];
   const visibleGroups = groupMeta.filter((group) => groupedSearches[group.key].length > 0);
+  const getReadyCountForGroup = (groupKey) =>
+    groupedSearches[groupKey].filter(
+      (search) => search.is_ready && !search.is_done_this_cycle
+    ).length;
 
   const renderSearchCard = (search) => {
     const isReady = search.is_ready && !search.is_done_this_cycle;
@@ -314,7 +318,7 @@ export function IceBreakerTabContent({ onEditContact, onAddLinkedin }) {
                               {group.label}
                             </h4>
                             <Badge variant="outline" className="border-[#333] text-slate-400">
-                              {groupedSearches[group.key].length}
+                              {getReadyCountForGroup(group.key)}/{groupedSearches[group.key].length}
                             </Badge>
                           </div>
                         </AccordionTrigger>
