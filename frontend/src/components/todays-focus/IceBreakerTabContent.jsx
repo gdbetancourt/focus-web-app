@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { toast } from "sonner";
 import api from "../../lib/api";
 import {
@@ -117,6 +118,7 @@ export function IceBreakerTabContent({ onEditContact, onAddLinkedin }) {
     { key: "MG", label: "Perfil MG" },
     { key: "UNASSIGNED", label: "Sin perfil asociado" },
   ];
+  const visibleGroups = groupMeta.filter((group) => groupedSearches[group.key].length > 0);
 
   const renderSearchCard = (search) => {
     const isReady = search.is_ready && !search.is_done_this_cycle;
@@ -295,27 +297,35 @@ export function IceBreakerTabContent({ onEditContact, onAddLinkedin }) {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {groupMeta.map((group) => (
-                    <div key={group.key} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">
-                          {group.label}
-                        </h4>
-                        <Badge variant="outline" className="border-[#333] text-slate-400">
-                          {groupedSearches[group.key].length}
-                        </Badge>
-                      </div>
-                      {groupedSearches[group.key].length === 0 ? (
-                        <div className="p-3 rounded-lg border border-[#222] bg-[#0a0a0a] text-xs text-slate-500">
-                          Sin búsquedas en este grupo.
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {groupedSearches[group.key].map(renderSearchCard)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  <Accordion
+                    type="multiple"
+                    defaultValue={visibleGroups.map((group) => group.key)}
+                    className="space-y-2"
+                  >
+                    {visibleGroups.map((group) => (
+                      <AccordionItem
+                        key={group.key}
+                        value={group.key}
+                        className="border border-[#222] rounded-lg bg-[#0a0a0a] px-4"
+                      >
+                        <AccordionTrigger className="hover:no-underline py-3">
+                          <div className="flex items-center justify-between w-full pr-2">
+                            <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">
+                              {group.label}
+                            </h4>
+                            <Badge variant="outline" className="border-[#333] text-slate-400">
+                              {groupedSearches[group.key].length}
+                            </Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 pb-3">
+                            {groupedSearches[group.key].map(renderSearchCard)}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 </div>
               )}
 
