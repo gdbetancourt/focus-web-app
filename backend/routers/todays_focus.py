@@ -1165,6 +1165,55 @@ class MarkCompanyInvitedRequest(BaseModel):
     """Mark companies as invited to an event this week"""
     company_ids: List[str]
 
+def _is_valid_company_name(name) -> bool:
+    """Reject empty and numeric-only company names."""
+    if not name:
+        return False
+    return not str(name).strip().isdigit()
+
+
+async def _get_outbound_company_names() -> List[str]:
+    """
+    Canonical outbound company source for invitation flows.
+    Uses unified_companies with is_merged != True and no hardcoded cap.
+    """
+    company_names = set()
+    cursor = db.unified_companies.find(
+        {"classification": "outbound", "is_merged": {"$ne": True}},
+        {"_id": 0, "name": 1}
+    )
+    async for company in cursor:
+        name = company.get("name")
+        if _is_valid_company_name(name):
+            company_names.add(str(name).strip())
+    return sorted(company_names)
+
+
+async def _get_outbound_company_records() -> List[dict]:
+    """
+    Canonical outbound companies for invitation workflows.
+    Uses stable identity (company id), not name-based deduplication.
+    """
+    companies: List[dict] = []
+    cursor = db.unified_companies.find(
+        {"classification": "outbound", "is_merged": {"$ne": True}},
+        {"_id": 0, "id": 1, "name": 1, "hubspot_id": 1}
+    )
+    async for company in cursor:
+        cid = company.get("id")
+        name = company.get("name")
+        if not cid:
+            continue
+        if not _is_valid_company_name(name):
+            continue
+        companies.append({
+            "id": str(cid),
+            "name": str(name).strip(),
+            "hubspot_id": company.get("hubspot_id")
+        })
+    companies.sort(key=lambda c: (c["name"].lower(), c["id"]))
+    return companies
+
 
 @router.get("/events-for-invitations")
 async def get_events_for_invitations(
@@ -1174,7 +1223,6 @@ async def get_events_for_invitations(
     Get future events available for sending company invitations.
     Returns events and OUTBOUND companies only with invitation tracking.
     """
-    import re
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     current_week = get_current_iso_week()
     
@@ -1187,26 +1235,14 @@ async def get_events_for_invitations(
         {"_id": 0}
     ).sort("webinar_date", 1).to_list(100)
     
-    # Get ONLY outbound companies from unified_companies
-    outbound_company_records = await db.unified_companies.find(
-        {"classification": "outbound", "is_merged": False},
-        {"_id": 0, "id": 1, "hubspot_id": 1, "name": 1}
-    ).to_list(1000)
-    
-    # Build company names from outbound only
-    all_company_names = set()
-    all_company_names.update([c.get("name") for c in outbound_company_records if c.get("name")])
-    
-    # Remove invalid names (numeric IDs)
-    valid_companies = [name for name in all_company_names if name and not re.match(r'^\d+$', str(name))]
-    valid_companies.sort()
-    
+    outbound_companies = await _get_outbound_company_records()
+
     return {
         "events": events,
-        "active_companies": valid_companies,
+        "active_companies": [c["name"] for c in outbound_companies],
         "current_week": current_week,
         "total_events": len(events),
-        "total_companies": len(valid_companies)
+        "total_companies": len(outbound_companies)
     }
 
 
@@ -1225,25 +1261,14 @@ async def get_event_company_invitations(
     2. Within each group, sort by number of non-discarded cases (descending)
     3. Companies invited this week go to the back of the queue
     """
-    import re
     event = await db.webinar_events_v2.find_one({"id": event_id}, {"_id": 0})
     if not event:
         raise HTTPException(status_code=404, detail="Evento no encontrado")
     
     current_week = get_current_iso_week()
     
-    # Get ONLY outbound companies from unified_companies
-    outbound_company_records = await db.unified_companies.find(
-        {"classification": "outbound", "is_merged": False},
-        {"_id": 0, "id": 1, "hubspot_id": 1, "name": 1}
-    ).to_list(1000)
-    
-    # Build company names list from outbound companies only
-    all_company_names = set()
-    all_company_names.update([c.get("name") for c in outbound_company_records if c.get("name")])
-    
-    # Filter out numeric-only names (invalid company names)
-    valid_companies = [name for name in all_company_names if name and not re.match(r'^\d+$', str(name))]
+    outbound_companies = await _get_outbound_company_records()
+    outbound_id_to_name = {c["id"]: c["name"] for c in outbound_companies}
     
     # Get case counts per company (non-discarded cases only)
     # Cases use company_names array, so we need to unwind first
@@ -1256,45 +1281,67 @@ async def get_event_company_invitations(
     case_count_map = {doc["_id"]: doc["count"] for doc in case_counts if doc["_id"]}
     
     # Get invitation records for THIS EVENT (to show checkmark)
-    event_invitations = await db.event_company_invitations.find(
-        {"event_id": event_id},
-        {"_id": 0}
-    ).to_list(1000)
-    event_invitation_map = {inv["company_name"]: inv for inv in event_invitations}
+    event_invitations = []
+    async for inv in db.event_company_invitations.find({"event_id": event_id}, {"_id": 0}):
+        event_invitations.append(inv)
+    event_invitation_by_id = {}
+    event_invitation_by_name = {}
+    for inv in event_invitations:
+        if inv.get("company_id"):
+            event_invitation_by_id[str(inv["company_id"])] = inv
+        if inv.get("company_name"):
+            event_invitation_by_name[str(inv["company_name"]).strip()] = inv
     
     # Get ALL invitations this week (ANY event) - for queue ordering
-    all_invitations_this_week = await db.event_company_invitations.find(
+    all_invitations_this_week = []
+    async for inv in db.event_company_invitations.find(
         {"last_invited_week": current_week},
-        {"_id": 0, "company_name": 1, "last_invited_at": 1}
-    ).to_list(5000)
+        {"_id": 0, "company_id": 1, "company_name": 1, "last_invited_at": 1}
+    ):
+        all_invitations_this_week.append(inv)
     
     # Build map of companies invited to ANY event this week
-    invited_any_event_this_week = {}
+    invited_any_event_this_week_by_id = {}
+    invited_any_event_this_week_by_name = {}
     for inv in all_invitations_this_week:
-        company = inv["company_name"]
-        if company not in invited_any_event_this_week:
-            invited_any_event_this_week[company] = inv.get("last_invited_at")
+        company_id = inv.get("company_id")
+        company_name = inv.get("company_name")
+        if company_id:
+            sid = str(company_id)
+            if sid not in invited_any_event_this_week_by_id:
+                invited_any_event_this_week_by_id[sid] = inv.get("last_invited_at")
+        if company_name:
+            sname = str(company_name).strip()
+            if sname not in invited_any_event_this_week_by_name:
+                invited_any_event_this_week_by_name[sname] = inv.get("last_invited_at")
     
     # Build company list with invitation status and case count
     invited_this_week = []
     not_invited_this_week = []
     
-    for company_name in valid_companies:
+    for company in outbound_companies:
+        company_id = company["id"]
+        company_name = company["name"]
         # Check if invited to THIS specific event
-        event_inv = event_invitation_map.get(company_name)
+        event_inv = event_invitation_by_id.get(company_id) or event_invitation_by_name.get(company_name)
         invited_to_this_event = event_inv.get("last_invited_week") == current_week if event_inv else False
         
         # Check if invited to ANY event this week (for queue ordering)
-        invited_to_any_event = company_name in invited_any_event_this_week
+        invited_to_any_event = (
+            company_id in invited_any_event_this_week_by_id
+            or company_name in invited_any_event_this_week_by_name
+        )
         
         case_count = case_count_map.get(company_name, 0)
         
         company_data = {
+            "id": company_id,
             "name": company_name,
             "invited_this_week": invited_to_this_event,  # Checkmark for THIS event
             "invited_to_any_event": invited_to_any_event,  # For queue ordering
             "last_invited_week": event_inv.get("last_invited_week") if event_inv else None,
-            "last_invited_at": invited_any_event_this_week.get(company_name),
+            "last_invited_at": invited_any_event_this_week_by_id.get(company_id)
+                or invited_any_event_this_week_by_name.get(company_name),
             "case_count": case_count
         }
         
@@ -1335,13 +1382,33 @@ async def mark_companies_invited(
     current_week = get_current_iso_week()
     now = datetime.now(timezone.utc).isoformat()
     
-    # Update or create invitation records
-    for company_name in request.company_ids:
+    outbound_companies = await _get_outbound_company_records()
+    outbound_id_to_name = {c["id"]: c["name"] for c in outbound_companies}
+    outbound_name_to_id = {c["name"]: c["id"] for c in outbound_companies}
+
+    companies_marked = 0
+    # Update or create invitation records (canonical key: company_id)
+    for company_ref in request.company_ids:
+        company_id = None
+        company_name = None
+
+        if company_ref in outbound_id_to_name:
+            company_id = company_ref
+            company_name = outbound_id_to_name[company_ref]
+        elif company_ref in outbound_name_to_id:
+            # Backward compatibility with old frontend payloads by name
+            company_id = outbound_name_to_id[company_ref]
+            company_name = company_ref
+        else:
+            # Ignore non-outbound / unknown references
+            continue
+
         await db.event_company_invitations.update_one(
-            {"event_id": event_id, "company_name": company_name},
+            {"event_id": event_id, "company_id": company_id},
             {"$set": {
                 "event_id": event_id,
                 "event_name": event.get("name"),
+                "company_id": company_id,
                 "company_name": company_name,
                 "last_invited_week": current_week,
                 "last_invited_at": now,
@@ -1349,11 +1416,19 @@ async def mark_companies_invited(
             }},
             upsert=True
         )
+        companies_marked += 1
+
+        # Cleanup legacy record keyed only by company_name
+        await db.event_company_invitations.delete_many({
+            "event_id": event_id,
+            "company_name": company_name,
+            "company_id": {"$exists": False}
+        })
     
     return {
         "success": True,
         "event_id": event_id,
-        "companies_marked": len(request.company_ids),
+        "companies_marked": companies_marked,
         "week": current_week
     }
 
@@ -1361,14 +1436,23 @@ async def mark_companies_invited(
 @router.post("/events/{event_id}/unmark-company-invited")
 async def unmark_company_invited(
     event_id: str,
-    company_name: str,
+    company_name: Optional[str] = None,
+    company_id: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
     """Unmark a company as invited (remove from invited list this week)"""
-    result = await db.event_company_invitations.delete_one({
-        "event_id": event_id,
-        "company_name": company_name
-    })
+    if not company_id and not company_name:
+        raise HTTPException(status_code=400, detail="company_id or company_name is required")
+
+    query = {"event_id": event_id}
+    if company_id and company_name:
+        query["$or"] = [{"company_id": company_id}, {"company_name": company_name}]
+    elif company_id:
+        query["company_id"] = company_id
+    else:
+        query["company_name"] = company_name
+
+    result = await db.event_company_invitations.delete_many(query)
     
     return {
         "success": True,
@@ -1440,4 +1524,3 @@ async def get_quotes_cases(
         "cases": enriched_cases,
         "total": len(enriched_cases)
     }
-

@@ -87,13 +87,13 @@ export function InviteToEventsTabContent() {
   };
 
   // Toggle company invitation
-  const toggleCompanyInvitation = (companyName) => {
+  const toggleCompanyInvitation = (companyId) => {
     setPendingChanges(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(companyName)) {
-        newSet.delete(companyName);
+      if (newSet.has(companyId)) {
+        newSet.delete(companyId);
       } else {
-        newSet.add(companyName);
+        newSet.add(companyId);
       }
       return newSet;
     });
@@ -109,15 +109,15 @@ export function InviteToEventsTabContent() {
       const toInvite = [];
       const toUninvite = [];
       
-      for (const companyName of pendingChanges) {
-        const company = companies.find(c => c.name === companyName);
+      for (const companyId of pendingChanges) {
+        const company = companies.find(c => c.id === companyId);
         if (company) {
           if (company.invited_this_week) {
             // Was invited, now unmarking
-            toUninvite.push(companyName);
+            toUninvite.push({ id: company.id, name: company.name });
           } else {
             // Was not invited, now marking
-            toInvite.push(companyName);
+            toInvite.push(company.id);
           }
         }
       }
@@ -130,9 +130,9 @@ export function InviteToEventsTabContent() {
       }
       
       // Unmark companies
-      for (const companyName of toUninvite) {
+      for (const company of toUninvite) {
         await api.post(
-          `/todays-focus/events/${selectedEvent.id}/unmark-company-invited?company_name=${encodeURIComponent(companyName)}`
+          `/todays-focus/events/${selectedEvent.id}/unmark-company-invited?company_id=${encodeURIComponent(company.id)}&company_name=${encodeURIComponent(company.name)}`
         );
       }
       
@@ -158,7 +158,7 @@ export function InviteToEventsTabContent() {
 
   // Calculate if company is checked (considering pending changes)
   const isCompanyChecked = (company) => {
-    const hasChange = pendingChanges.has(company.name);
+    const hasChange = pendingChanges.has(company.id);
     if (hasChange) {
       return !company.invited_this_week; // Toggle the current state
     }
@@ -370,17 +370,17 @@ export function InviteToEventsTabContent() {
                 <div className="space-y-1">
                   {filteredCompanies.map((company) => {
                     const isChecked = isCompanyChecked(company);
-                    const hasChange = pendingChanges.has(company.name);
+                    const hasChange = pendingChanges.has(company.id);
                     
                     return (
                       <div
-                        key={company.name}
+                        key={company.id || company.name}
                         className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
                           isChecked 
                             ? 'bg-green-500/10 border-green-500/30' 
                             : 'bg-[#0a0a0a] border-[#222] hover:border-[#333]'
                         } ${hasChange ? 'ring-2 ring-cyan-500/50' : ''}`}
-                        onClick={() => toggleCompanyInvitation(company.name)}
+                        onClick={() => toggleCompanyInvitation(company.id)}
                       >
                         <Checkbox
                           checked={isChecked}
