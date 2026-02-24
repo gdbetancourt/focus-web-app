@@ -2376,7 +2376,7 @@ Texto:
 {dictation}"""
             
             chat = LlmChat(model="gemini/gemini-2.0-flash")
-            cleaned_text = chat.send_message(clean_prompt)
+            cleaned_text = await chat.send_message(clean_prompt)
             results["cleaned_text"] = cleaned_text
             
             await db.content_items.update_one(
@@ -2761,7 +2761,7 @@ Texto:
 {dictation}"""
         
         chat = LlmChat(model="gemini/gemini-2.0-flash")
-        cleaned_text = chat.send_message(clean_prompt)
+        cleaned_text = await chat.send_message(clean_prompt)
         results["cleaned_text"] = cleaned_text
         
         # Save cleaned text
