@@ -3,7 +3,7 @@
  * Reusable across Companies page and Prospection tab
  * Now supports role-based permissions
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
 import { Switch } from "./ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { toast } from "sonner";
 import api from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -110,9 +117,22 @@ export function CompanyEditorDialog({
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [merging, setMerging] = useState(false);
   
+  const [industryToAdd, setIndustryToAdd] = useState("");
+
   // Available industries for selector
   const [availableIndustries, setAvailableIndustries] = useState([]);
-  
+  const industriesMap = useMemo(() => {
+    const entries = [];
+    for (const i of (availableIndustries || [])) {
+      const label = i.label || i.value;
+      if (i.value) entries.push([i.value, label]);
+      if (i.code) entries.push([i.code, label]);
+      if (i.id) entries.push([i.id, label]);
+      if (i.label) entries.push([i.label, label]);
+    }
+    return Object.fromEntries(entries);
+  }, [availableIndustries]);
+
   // Contact/Case association states
   const [contactSearch, setContactSearch] = useState("");
   const [contactSearchResults, setContactSearchResults] = useState([]);
@@ -121,17 +141,62 @@ export function CompanyEditorDialog({
   const [caseSearchResults, setCaseSearchResults] = useState([]);
   const [searchingCases, setSearchingCases] = useState(false);
 
-  // Load industries list
+  // Load industries list from official endpoint (/industries-v2), paginated.
   const loadIndustries = async () => {
     try {
-      const res = await api.get("/industries/");
-      const inds = res.data.industries || [];
-      setAvailableIndustries(inds.map(i => ({
-        value: i.code || i.id,
-        label: i.name
-      })));
+      const pageSize = 500;
+      let skip = 0;
+      let total = Infinity;
+      const inds = [];
+
+      while (skip < total) {
+        const res = await api.get("/industries-v2", { params: { limit: pageSize, skip } });
+        const batch = res.data.industries || [];
+        total = Number(res.data.total ?? batch.length);
+        inds.push(...batch);
+        if (batch.length === 0) break;
+        skip += batch.length;
+      }
+
+      const normalized = inds
+        .filter((i) => i && typeof i.name === "string" && i.name.trim())
+        .map((i) => ({
+          // Keep canonical company storage as industry name for compatibility
+          value: i.name.trim(),
+          label: i.name.trim(),
+          id: i.id,
+          code: i.code,
+          classification: i.classification || "inbound",
+        }));
+
+      const seen = new Set();
+      const unique = normalized.filter((i) => {
+        const k = i.value.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+
+      setAvailableIndustries(unique);
     } catch (error) {
       console.error("Error loading industries:", error);
+      try {
+        const legacyRes = await api.get("/industries/");
+        const legacy = legacyRes.data.industries || [];
+        setAvailableIndustries(
+          legacy
+            .filter((i) => i && typeof i.name === "string" && i.name.trim())
+            .map((i) => ({
+              value: i.name.trim(),
+              label: i.name.trim(),
+              id: i.id,
+              code: i.code,
+              classification: i.classification || "inbound",
+            }))
+        );
+      } catch (_legacyError) {
+        toast.error("No se pudo cargar el catálogo oficial de industrias");
+      }
     }
   };
 
@@ -707,7 +772,7 @@ export function CompanyEditorDialog({
                             key={idx}
                             className="inline-flex items-center gap-1 px-2 py-1 bg-blue-900/30 text-blue-400 rounded text-sm"
                           >
-                            {ind}
+                            {industriesMap[ind] || ind}
                             <button
                               onClick={() => setIndustries(industries.filter((_, i) => i !== idx))}
                               className="hover:text-blue-200"
@@ -717,24 +782,33 @@ export function CompanyEditorDialog({
                           </span>
                         ))}
                       </div>
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          if (e.target.value && !industries.includes(e.target.value)) {
-                            setIndustries([...industries, e.target.value]);
+                      <Select
+                        value={industryToAdd}
+                        onValueChange={(value) => {
+                          if (value && !industries.includes(value)) {
+                            setIndustries((prev) => [...prev, value]);
                           }
+                          setIndustryToAdd("");
                         }}
-                        className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-white"
                       >
-                        <option value="">+ Agregar industria...</option>
-                        {availableIndustries
-                          .filter(ind => !industries.includes(ind.value))
-                          .map(ind => (
-                            <option key={ind.value} value={ind.value}>
-                              {ind.label || ind.value}
-                            </option>
-                          ))}
-                      </select>
+                        <SelectTrigger className="w-full bg-[#0a0a0a] border border-[#333] text-white">
+                          <SelectValue placeholder="+ Agregar industria..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0a0a0a] border-[#333] max-h-64">
+                          {availableIndustries
+                            .filter((ind) => !industries.includes(ind.value))
+                            .map((ind) => (
+                              <SelectItem key={ind.value} value={ind.value}>
+                                {ind.label || ind.value}
+                              </SelectItem>
+                            ))}
+                          {availableIndustries.filter((ind) => !industries.includes(ind.value)).length === 0 && (
+                            <SelectItem value="__none__" disabled>
+                              No hay más industrias disponibles
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Website & LinkedIn */}
