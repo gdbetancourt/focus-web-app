@@ -3,6 +3,7 @@
  * Export all focus page components
  */
 
+export { default as MeetingsConfirmationsPage } from './MeetingsConfirmationsPage';
 export { default as MaxLinkedInConexionsPage } from './MaxLinkedInConexionsPage';
 export { default as ImportNewConnectionsPage } from './ImportNewConnectionsPage';
 export { default as MarketingEventPlanningPage } from './MarketingEventPlanningPage';

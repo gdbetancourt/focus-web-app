@@ -12,7 +12,8 @@ export { default as FOCUS_SECTIONS, getSectionById, getSectionIndex, LINKEDIN_PR
 export { default as ASSETS_SECTIONS, getAssetSectionById } from './assetsSections';
 
 // Pages
-export { 
+export {
+  MeetingsConfirmationsPage,
   MaxLinkedInConexionsPage,
   ImportNewConnectionsPage,
   MarketingEventPlanningPage,

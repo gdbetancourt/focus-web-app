@@ -12,6 +12,7 @@ import {
   Users,
   Download,
   Calendar,
+  CalendarCheck,
   CalendarDays,
   Upload,
   CheckSquare,
@@ -38,6 +39,25 @@ export const LINKEDIN_PROFILES = [
  * Order: As specified by user
  */
 export const FOCUS_SECTIONS = [
+  {
+    id: "meetings-confirmations",
+    label: "Meetings Confirmations",
+    icon: CalendarCheck,
+    path: "/focus/meetings-confirmations",
+    trafficType: "daily",
+    subheadline: "Confirma por WhatsApp todas las reuniones próximas con contactos externos. Solo días hábiles.",
+    steps: [
+      { label: "Presiona 'Generar / Actualizar' para sincronizar con el calendario" },
+      { label: "Copia el mensaje de cada reunión del bucket Hoy" },
+      { label: "Envíalo por WhatsApp a cada contacto" },
+    ],
+    trafficRules: {
+      red: "Hay reuniones de hoy sin confirmar y ningún mensaje ha sido copiado",
+      yellow: "Algunos mensajes han sido copiados pero aún hay reuniones sin confirmar",
+      green: "Todas las reuniones de hoy han sido confirmadas",
+    },
+    sourceComponent: "MeetingsConfirmationsPage",
+  },
   {
     id: "max-linkedin-conexions",
     label: "Max LinkedIn Conexions",
