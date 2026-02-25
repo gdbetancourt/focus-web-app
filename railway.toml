@@ -1,0 +1,5 @@
+[build]
+buildCommand = "cd frontend && yarn install && yarn build"
+
+[deploy]
+startCommand = "npx serve -s frontend/build -l ${PORT:-3000}"
