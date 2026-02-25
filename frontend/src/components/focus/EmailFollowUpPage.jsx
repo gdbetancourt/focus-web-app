@@ -39,6 +39,7 @@ export default function EmailFollowUpPage() {
   return (
     <SectionLayout
       title={SECTION.label}
+          sectionId={SECTION.id}
       subheadline={SECTION.subheadline}
       steps={SECTION.steps}
       trafficRules={customTrafficRules}

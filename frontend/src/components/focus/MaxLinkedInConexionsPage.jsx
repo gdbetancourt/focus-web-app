@@ -86,6 +86,7 @@ export default function MaxLinkedInConexionsPage() {
   return (
     <SectionLayout
       title={SECTION.label}
+          sectionId={SECTION.id}
       subheadline={SECTION.subheadline}
       steps={SECTION.steps}
       trafficRules={SECTION.trafficRules}

@@ -28,6 +28,7 @@ export default function TasksOutsideSystemPage() {
   return (
     <SectionLayout
       title={SECTION.label}
+          sectionId={SECTION.id}
       subheadline={SECTION.subheadline}
       steps={SECTION.steps}
       trafficRules={SECTION.trafficRules}

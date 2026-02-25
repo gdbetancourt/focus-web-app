@@ -579,6 +579,7 @@ export default function CurrentCasesDeliveryPage() {
   return (
     <SectionLayout
       title={SECTION.label}
+          sectionId={SECTION.id}
       subheadline={SECTION.subheadline}
       steps={SECTION.steps}
       trafficRules={trafficRules}

@@ -12,34 +12,23 @@ const SECTION = getSectionById("personal-invitations");
 
 export default function PersonalInvitationsPage() {
   const [trafficStatus, setTrafficStatus] = useState("gray");
-  const [historyStatuses, setHistoryStatuses] = useState([]);
 
   useEffect(() => {
-    const loadStatus = async () => {
-      try {
-        const [statusRes, historyRes] = await Promise.all([
-          api.get("/focus/traffic-light-status"),
-          api.get("/focus/traffic-light-history/personal-invitations?weeks=52"),
-        ]);
-        setTrafficStatus(statusRes.data["personal-invitations"] || "gray");
-        const history = historyRes.data?.history || [];
-        setHistoryStatuses(history.map((w) => w.status || "gray"));
-      } catch (error) {
-        console.error("Error loading status:", error);
-      }
-    };
-    loadStatus();
+    api
+      .get("/focus/traffic-light-status")
+      .then((res) => setTrafficStatus(res.data["personal-invitations"] || "gray"))
+      .catch(() => {});
   }, []);
 
   return (
     <SectionLayout
       title={SECTION.label}
+      sectionId={SECTION.id}
       subheadline={SECTION.subheadline}
       steps={SECTION.steps}
       trafficRules={SECTION.trafficRules}
       isDaily={false}
       currentStatus={trafficStatus}
-      historyStatuses={historyStatuses}
       icon={Snowflake}
     >
       <IceBreakerTabContent />

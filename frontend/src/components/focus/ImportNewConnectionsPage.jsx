@@ -1402,6 +1402,7 @@ export default function ImportNewConnectionsPage() {
   return (
     <SectionLayout
       title={SECTION?.label || "Import New Connections"}
+          sectionId={SECTION.id}
       subheadline={SECTION?.subheadline || "Importa conexiones de LinkedIn semanalmente"}
       steps={SECTION?.steps || []}
       trafficRules={SECTION?.trafficRules || {}}

@@ -37,6 +37,7 @@ export default function WhatsAppFollowUpPage() {
   return (
     <SectionLayout
       title={SECTION.label}
+          sectionId={SECTION.id}
       subheadline={SECTION.subheadline}
       steps={SECTION.steps}
       trafficRules={customTrafficRules}

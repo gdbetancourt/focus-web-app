@@ -276,7 +276,7 @@ export default function MergeCompaniesPage({ onStatusChange }) {
 
   if (loading) {
     return (
-      <SectionLayout section={section}>
+      <SectionLayout section={section} sectionId="merge-companies">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>

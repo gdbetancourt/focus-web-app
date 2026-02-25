@@ -7,9 +7,10 @@
  * - Traffic light history (52 weeks for weekly, 90 days for daily)
  * - Left sidebar with numbered steps, "See more" details, and traffic rules
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, ExternalLink, Construction } from "lucide-react";
 import { cn } from "../../lib/utils";
+import api from "../../lib/api";
 
 // Company Vision - displayed at the top of every section
 const COMPANY_VISION = "We help bold leaders to communicate with impact so they can cut through the noise and lead meaningful change in their organization and the world.";
@@ -66,7 +67,8 @@ function TrafficLightHistory({ isDaily = false, currentStatus = "gray", historyS
           const isCurrent = periodNumber === actualCurrentPeriod;
           const isFuture = periodNumber > actualCurrentPeriod;
           const historicalStatus = historyStatuses[i];
-          const hasHistoricalStatus = Boolean(historicalStatus);
+          // Only truthy non-null statuses count as "has real data"
+          const hasHistoricalStatus = Boolean(historicalStatus) && historicalStatus !== null;
           
           return (
             <div
@@ -199,19 +201,46 @@ function StepsSidebar({ steps = [], trafficRules = {} }) {
 
 /**
  * Main Section Layout Component
+ *
+ * When `sectionId` is provided the component auto-fetches traffic light
+ * history from the backend and passes it to TrafficLightHistory.
+ * Externally-supplied `historyStatuses` (non-empty array) take priority
+ * over the auto-fetched data, for backward compatibility.
  */
 export default function SectionLayout({
   title,
+  sectionId,
   subheadline,
   steps = [],
   trafficRules = {},
   isDaily = false,
   currentStatus = "gray",
-  historyStatuses = [],
+  historyStatuses: externalHistoryStatuses = [],
   children,
   icon: Icon,
   inConstruction = false,
 }) {
+  const [fetchedHistory, setFetchedHistory] = useState([]);
+
+  useEffect(() => {
+    if (!sectionId || inConstruction) return;
+    const param = isDaily ? "days=90" : "weeks=52";
+    api
+      .get(`/focus/traffic-light-history/${sectionId}?${param}`)
+      .then((res) => {
+        const raw = res.data?.history ?? [];
+        // Map each entry: null/undefined status → keep as null (frontend renders gray)
+        setFetchedHistory(raw.map((h) => h.status ?? null));
+      })
+      .catch(() => {
+        // Silently fall back to empty (all gray) — no error toast
+      });
+  }, [sectionId, isDaily, inConstruction]);
+
+  // External prop wins when non-empty (PersonalInvitationsPage legacy path)
+  const historyStatuses =
+    externalHistoryStatuses.length > 0 ? externalHistoryStatuses : fetchedHistory;
+
   return (
     <div className="space-y-6" data-testid={`section-${title?.toLowerCase().replace(/\s+/g, '-')}`}>
       {/* Header with Title */}
