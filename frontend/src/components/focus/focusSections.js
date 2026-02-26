@@ -47,9 +47,9 @@ export const FOCUS_SECTIONS = [
     trafficType: "daily",
     subheadline: "Confirma por WhatsApp todas las reuniones próximas con contactos externos. Solo días hábiles.",
     steps: [
-      { label: "Presiona 'Generar / Actualizar' para sincronizar con el calendario" },
-      { label: "Copia el mensaje de cada reunión del bucket Hoy" },
-      { label: "Envíalo por WhatsApp a cada contacto" },
+      { title: "Presiona 'Generar / Actualizar' para sincronizar con el calendario" },
+      { title: "Copia el mensaje de cada reunión del bucket Hoy" },
+      { title: "Envíalo por WhatsApp a cada contacto" },
     ],
     trafficRules: {
       red: "Hay reuniones de hoy sin confirmar y ningún mensaje ha sido copiado",
