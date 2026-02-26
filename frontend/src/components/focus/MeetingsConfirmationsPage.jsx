@@ -47,14 +47,28 @@ function ItemCard({ item, showSnooze = false, onCopied, onSnoozed }) {
   const handleCopy = async () => {
     setCopying(true);
     try {
-      await navigator.clipboard.writeText(item.message_text);
+      // Clipboard may fail (permissions) — don't let it block the backend call
+      try {
+        await navigator.clipboard.writeText(item.message_text);
+      } catch {
+        // clipboard unavailable — continue anyway
+      }
       await api.post(`/meetings-confirmations/items/${item.item_id}/copy`);
       toast.success("Mensaje copiado");
       onCopied?.();
     } catch (err) {
-      toast.error("Error al copiar el mensaje");
+      toast.error("Error al marcar como copiado");
     } finally {
       setCopying(false);
+    }
+  };
+
+  const handleWhatsApp = async () => {
+    try {
+      await api.post(`/meetings-confirmations/items/${item.item_id}/copy`);
+      onCopied?.();
+    } catch (err) {
+      toast.error("Error al registrar el envío de WhatsApp");
     }
   };
 
@@ -122,6 +136,7 @@ function ItemCard({ item, showSnooze = false, onCopied, onSnoozed }) {
               href={item.whatsapp_link}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={handleWhatsApp}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs transition-colors"
             >
               <MessageCircle className="w-3 h-3" />
@@ -265,8 +280,14 @@ function NoPhoneCard({ item, onPhoneAdded }) {
 
 function BucketAccordion({ label, items, defaultOpen = false, showSnooze = false, showCopyAll = false, onRefresh }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [removedIds, setRemovedIds] = useState(new Set());
 
-  const pendingItems = items.filter((i) => i.status !== "copied");
+  const handleItemCopied = (itemId) => {
+    setRemovedIds((prev) => new Set([...prev, itemId]));
+    onRefresh?.();
+  };
+
+  const pendingItems = items.filter((i) => i.status !== "copied" && !removedIds.has(i.item_id));
   const pendingIds = pendingItems.map((i) => i.item_id);
   const [copyingAll, setCopyingAll] = useState(false);
 
@@ -331,12 +352,12 @@ function BucketAccordion({ label, items, defaultOpen = false, showSnooze = false
               Copiar todos ({pendingItems.length})
             </Button>
           )}
-          {items.map((item) => (
+          {pendingItems.map((item) => (
             <ItemCard
               key={item.item_id}
               item={item}
               showSnooze={showSnooze}
-              onCopied={onRefresh}
+              onCopied={() => handleItemCopied(item.item_id)}
               onSnoozed={onRefresh}
             />
           ))}
@@ -717,9 +738,9 @@ export default function MeetingsConfirmationsPage() {
     : 0;
 
   const customTrafficRules = {
-    red: "Hay reuniones de hoy sin confirmar y ningún mensaje ha sido copiado",
-    yellow: "Algunos mensajes han sido copiados pero aún hay reuniones sin confirmar",
-    green: "Todas las reuniones de hoy han sido confirmadas",
+    red: "Hay confirmaciones pendientes y ninguna ha sido enviada aún",
+    yellow: "Algunas confirmaciones han sido enviadas pero aún hay pendientes",
+    green: "Todas las confirmaciones han sido enviadas o no hay reuniones próximas",
   };
 
   return (
