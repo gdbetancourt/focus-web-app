@@ -1,9 +1,10 @@
 /**
- * CurrentCasesDeliveryPage - Stage 4 "Ganados" cases management
- * Shows cases in Stage "ganados" with status "active" for delivery follow-up
- * 
+ * CurrentCasesDeliveryPage - Stage 4 cases management for delivery follow-up
+ * Shows ALL Stage 4 cases organized by delivery_stage
+ *
  * Features:
- * - Cases displayed as accordions
+ * - Top-level accordion groups by delivery stage (ganados, contenidos_transcritos, etc.)
+ * - Cases displayed as accordions within each stage group
  * - Sub-accordions by contact roles (Deal Makers, Coachees, Students, etc.)
  * - Checklist system with tasks/columns per subgroup
  * - Weekly indicators (green/yellow/red)
@@ -141,6 +142,31 @@ const ROLE_COLORS = {
   evaluador_360: { color: "text-indigo-400", bgColor: "bg-indigo-500/10" },
 };
 
+// Delivery stage constants
+const DELIVERY_STAGE_LABELS = {
+  ganados: "En Entrega Activa",
+  contenidos_transcritos: "Contenidos Transcritos",
+  reporte_presentado: "Reporte Presentado",
+  caso_publicado: "Caso Publicado",
+  concluidos: "Concluidos",
+};
+
+const DELIVERY_STAGE_COLORS = {
+  ganados: "bg-green-500/20 text-green-400 border-green-500/50",
+  contenidos_transcritos: "bg-blue-500/20 text-blue-400 border-blue-500/50",
+  reporte_presentado: "bg-purple-500/20 text-purple-400 border-purple-500/50",
+  caso_publicado: "bg-amber-500/20 text-amber-400 border-amber-500/50",
+  concluidos: "bg-slate-500/20 text-slate-400 border-slate-500/50",
+};
+
+const DELIVERY_STAGE_ORDER = [
+  "ganados",
+  "contenidos_transcritos",
+  "reporte_presentado",
+  "caso_publicado",
+  "concluidos",
+];
+
 // Get display label for a role
 function getRoleLabel(role) {
   return CANONICAL_TO_UI[role] || role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -180,12 +206,14 @@ function WeeklyIndicator({ status }) {
 export default function CurrentCasesDeliveryPage() {
   // Data state
   const [cases, setCases] = useState([]);
+  const [grouped, setGrouped] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // UI state
   const [expandedCases, setExpandedCases] = useState([]);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [expandedDeliveryStages, setExpandedDeliveryStages] = useState(["ganados"]);
   
   // Contact sheet state
   const [selectedContact, setSelectedContact] = useState(null);
@@ -223,15 +251,18 @@ export default function CurrentCasesDeliveryPage() {
   const loadCases = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/cases/delivery/ganados");
-      setCases(res.data.cases || []);
-      
+      const res = await api.get("/cases/delivery/all");
+      const allCases = res.data.cases || [];
+      setCases(allCases);
+      setGrouped(res.data.grouped || {});
+
       // Calculate global status
-      calculateGlobalStatus(res.data.cases || []);
-      
-      // Auto-expand first case
-      if (res.data.cases?.length > 0) {
-        setExpandedCases([res.data.cases[0].id]);
+      calculateGlobalStatus(allCases);
+
+      // Auto-expand first case in ganados stage
+      const ganadosCases = res.data.grouped?.ganados || [];
+      if (ganadosCases.length > 0) {
+        setExpandedCases([ganadosCases[0].id]);
       }
     } catch (error) {
       console.error("Error loading cases:", error);
@@ -592,7 +623,7 @@ export default function CurrentCasesDeliveryPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge className="bg-purple-500/20 text-purple-400 border-0">
-              {cases.length} casos activos
+              {cases.length} casos Stage 4
             </Badge>
           </div>
           <Button
@@ -616,18 +647,43 @@ export default function CurrentCasesDeliveryPage() {
           <Card className="bg-[#111] border-[#222]">
             <CardContent className="py-12 text-center">
               <Briefcase className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-              <p className="text-slate-400">No hay casos en Stage "Ganados"</p>
+              <p className="text-slate-400">No hay casos en Stage 4</p>
             </CardContent>
           </Card>
         ) : (
-          /* Cases Accordions */
-          <Accordion 
-            type="multiple" 
-            value={expandedCases}
-            onValueChange={setExpandedCases}
-            className="space-y-3"
-          >
-            {cases.map((caseData) => {
+          /* Delivery Stage Accordions */
+          <div className="space-y-4">
+            {DELIVERY_STAGE_ORDER.map((deliveryStage) => {
+              const stageCases = grouped[deliveryStage] || [];
+              if (stageCases.length === 0) return null;
+              const stageLabel = DELIVERY_STAGE_LABELS[deliveryStage] || deliveryStage;
+              const stageColorClass = DELIVERY_STAGE_COLORS[deliveryStage] || "";
+              const isStageExpanded = expandedDeliveryStages.includes(deliveryStage);
+              return (
+                <div key={deliveryStage} className="bg-[#0d0d0d] border border-[#222] rounded-lg overflow-hidden">
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1a1a] text-left"
+                    onClick={() => setExpandedDeliveryStages(prev =>
+                      prev.includes(deliveryStage) ? prev.filter(s => s !== deliveryStage) : [...prev, deliveryStage]
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Badge className={`border text-xs ${stageColorClass}`}>
+                        {stageLabel}
+                      </Badge>
+                      <span className="text-slate-400 text-sm">{stageCases.length} caso{stageCases.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isStageExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isStageExpanded && (
+                    <div className="px-3 pb-3">
+                      <Accordion
+                        type="multiple"
+                        value={expandedCases}
+                        onValueChange={setExpandedCases}
+                        className="space-y-3 pt-3"
+                      >
+                        {stageCases.map((caseData) => {
               const contactGroups = groupContactsByRole(caseData);
               const canArchive = canArchiveCase(caseData);
               
@@ -650,6 +706,15 @@ export default function CurrentCasesDeliveryPage() {
                                 {caseData.company_names[0]}
                               </Badge>
                             )}
+                            {(() => {
+                              const dealMaker = caseData.contacts?.find(c => c.case_roles?.includes("deal_maker"));
+                              return dealMaker ? (
+                                <Badge className="bg-green-500/10 text-green-400 border-0 text-xs">
+                                  <Briefcase className="w-3 h-3 mr-1" />
+                                  {dealMaker.first_name || dealMaker.name}
+                                </Badge>
+                              ) : null;
+                            })()}
                             <Badge className="bg-purple-500/20 text-purple-400 border-0 text-xs">
                               {caseData.contacts?.length || 0} contactos
                             </Badge>
@@ -868,7 +933,13 @@ export default function CurrentCasesDeliveryPage() {
                 </AccordionItem>
               );
             })}
-          </Accordion>
+                      </Accordion>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
