@@ -2,7 +2,7 @@
  * MeetingsConfirmationsPage
  * FOCUS section — daily, navigation_order=1
  * Confirms upcoming meetings via WhatsApp.
- * Spec: docs/product (Google Docs manuals v1.1)
+ * Spec: docs/product (Google Docs manuals v1.1 / v1.2)
  */
 import { useState, useEffect, useCallback } from "react";
 import { getSectionById } from "./focusSections";
@@ -22,10 +22,15 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Search,
+  X,
+  XCircle,
+  Info,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { toast } from "sonner";
 import api from "../../lib/api";
 
@@ -86,6 +91,11 @@ function ItemCard({ item, showSnooze = false, onCopied, onSnoozed }) {
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs shrink-0">
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Copiado
+              </Badge>
+            )}
+            {item.contact_was_created && (
+              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs shrink-0">
+                Contacto nuevo
               </Badge>
             )}
           </div>
@@ -337,6 +347,284 @@ function BucketAccordion({ label, items, defaultOpen = false, showSnooze = false
 }
 
 // ─────────────────────────────────────────────
+// Debugger Panel — Eligibility search
+// ─────────────────────────────────────────────
+
+const BUCKET_LABELS = {
+  today: "Hoy",
+  tomorrow: "Mañana",
+  upcoming: "Próximos 21 días",
+  no_phone: "Sin teléfono",
+};
+
+const BUCKET_COLORS = {
+  today: "bg-red-500/20 text-red-400 border-red-500/30",
+  tomorrow: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  upcoming: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  no_phone: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+};
+
+const FILTER_LABELS = {
+  valid_event: "ID de evento válido",
+  event_not_gcal_cancelled: "Evento no cancelado en Google Calendar",
+  not_all_day: "No es evento de día completo",
+  not_self: "No es el dueño del calendario (self)",
+  not_declined: "No rechazó la invitación (declined)",
+  not_internal_domain: "Dominio externo (no @leaderlix.com)",
+};
+
+function DebuggerPanel() {
+  const [emailInput, setEmailInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleEvaluate = async () => {
+    const email = emailInput.trim().toLowerCase();
+    if (!email) return;
+    setLoading(true);
+    setResult(null);
+    setError(null);
+    try {
+      const res = await api.get(`/meetings-confirmations/debug?email=${encodeURIComponent(email)}`);
+      setResult(res.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al evaluar el email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClear = () => {
+    setEmailInput("");
+    setResult(null);
+    setError(null);
+  };
+
+  return (
+    <Card className="bg-[#111] border-[#222]">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-white text-base">
+          <Search className="w-4 h-4 text-blue-400" />
+          Diagnóstico de elegibilidad
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-4">
+        {/* Input row */}
+        <div className="flex gap-2">
+          <Input
+            type="email"
+            placeholder="email@empresa.com"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleEvaluate()}
+            className="bg-[#0a0a0a] border-[#333] text-white flex-1"
+          />
+          <Button
+            size="sm"
+            onClick={handleEvaluate}
+            disabled={loading || !emailInput.trim()}
+            className="btn-accent shrink-0"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Evaluar"}
+          </Button>
+          {(result || error) && (
+            <Button size="sm" variant="outline" onClick={handleClear} className="border-[#333] shrink-0">
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Results */}
+        {result && (
+          <div className="space-y-4">
+
+            {/* ── A: Contact ── */}
+            <div className="p-3 bg-[#0a0a0a] border border-[#222] rounded-lg space-y-2">
+              <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">
+                Contacto en unified_contacts
+              </p>
+              {result.contact.found ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                    <span className="text-white text-sm font-medium">{result.contact.name}</span>
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                      Encontrado
+                    </Badge>
+                  </div>
+                  <div className="ml-6 flex flex-wrap gap-2 text-xs text-slate-500">
+                    {result.contact.stage != null && (
+                      <span>Stage {result.contact.stage}</span>
+                    )}
+                    {result.contact.source && (
+                      <span>source: {result.contact.source}</span>
+                    )}
+                    <span className={result.contact.has_phone ? "text-green-400" : "text-orange-400"}>
+                      {result.contact.has_phone ? "Con teléfono" : "Sin teléfono"}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-blue-400 shrink-0" />
+                    <span className="text-white text-sm">No encontrado</span>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
+                      Se autocrearía
+                    </Badge>
+                  </div>
+                  <p className="ml-6 text-xs text-slate-500">
+                    Se crearía con: nombre &ldquo;{result.contact.derived_name}&rdquo;,
+                    stage=1, source=calendar_import, sin teléfono (quedaría en Sin teléfono)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ── B: Events ── */}
+            <div className="p-3 bg-[#0a0a0a] border border-[#222] rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">
+                  Eventos relevantes
+                </p>
+                <span className="text-xs text-slate-500">
+                  {result.events_with_email}/{result.total_events_scanned} eventos escaneados
+                </span>
+              </div>
+
+              {result.events.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">
+                  Este email no aparece en ningún evento de los próximos 21 días.
+                </p>
+              ) : (
+                result.events.map((ev, idx) => (
+                  <DebugEventCard key={ev.event_id || idx} event={ev} />
+                ))
+              )}
+            </div>
+
+            {/* ── D: Summary ── */}
+            <div className={`p-3 rounded-lg border ${
+              result.classifications_count > 0
+                ? "bg-green-500/10 border-green-500/30"
+                : "bg-slate-800/50 border-slate-700"
+            }`}>
+              {result.classifications_count > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-green-400">
+                    ✅ {result.classifications_count} evento{result.classifications_count > 1 ? "s" : ""} pasaría{result.classifications_count > 1 ? "n" : ""} los filtros
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {result.events.filter(e => e.overall_pass).map((ev, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-xs text-slate-300">
+                        <Badge className={BUCKET_COLORS[ev.bucket] || "bg-slate-700 text-slate-300"}>
+                          {BUCKET_LABELS[ev.bucket] || ev.bucket}
+                        </Badge>
+                        <span className="text-slate-500 truncate max-w-[180px]">{ev.summary}</span>
+                        <span className="text-slate-600">{ev.start_date_local}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">
+                  ❌ Ningún evento pasa todos los filtros
+                  {result.events_with_email === 0
+                    ? " — el email no aparece en eventos del período."
+                    : ` — ${result.events_with_email} evento${result.events_with_email > 1 ? "s" : ""} encontrado${result.events_with_email > 1 ? "s" : ""} pero ninguno cumple las reglas.`}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DebugEventCard({ event }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className={`rounded border ${event.overall_pass ? "border-green-500/30 bg-green-500/5" : "border-slate-700 bg-[#111]"}`}>
+      {/* Header */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2 text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {event.overall_pass ? (
+            <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+          ) : (
+            <XCircle className="w-4 h-4 text-slate-500 shrink-0" />
+          )}
+          <span className="text-sm text-white truncate">{event.summary}</span>
+          <span className="text-xs text-slate-500 shrink-0">{event.start_date_local}</span>
+          {event.bucket && (
+            <Badge className={`text-xs shrink-0 ${BUCKET_COLORS[event.bucket] || ""}`}>
+              {BUCKET_LABELS[event.bucket] || event.bucket}
+            </Badge>
+          )}
+        </div>
+        {open ? (
+          <ChevronUp className="w-3 h-3 text-slate-400 shrink-0" />
+        ) : (
+          <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+        )}
+      </button>
+
+      {/* Expanded: filter checklist */}
+      {open && (
+        <div className="px-3 pb-3 space-y-1.5 border-t border-[#222]">
+          {/* Skip reason banner */}
+          {!event.overall_pass && event.skip_reason && (
+            <div className="mt-2 px-2 py-1.5 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-400">
+              Razón de exclusión: {event.skip_reason}
+            </div>
+          )}
+          <div className="mt-2 space-y-1">
+            {event.filters.map((f, idx) => (
+              <div key={idx} className={`flex items-start gap-2 px-2 py-1 rounded text-xs ${f.passed ? "" : "bg-red-500/5"}`}>
+                {f.passed ? (
+                  <CheckCircle className="w-3 h-3 text-green-400 shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
+                )}
+                <div className="min-w-0">
+                  <span className={`font-medium ${f.passed ? "text-slate-400" : "text-red-400"}`}>
+                    {FILTER_LABELS[f.filter_name] || f.filter_name}
+                  </span>
+                  <span className="text-slate-600 ml-1">— {f.reason}</span>
+                  {f.value && !f.passed && (
+                    <span className="ml-1 text-slate-500">[valor: {f.value}]</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {event.overall_pass && event.projected_status && (
+            <div className="mt-2 pt-2 border-t border-[#222] text-xs text-slate-400">
+              Estado proyectado:{" "}
+              <span className={event.projected_status === "pending" ? "text-green-400" : "text-orange-400"}>
+                {event.projected_status === "pending" ? "pending (tiene teléfono)" : "no_phone (sin teléfono)"}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
 
@@ -401,8 +689,14 @@ export default function MeetingsConfirmationsPage() {
         res.data.buckets.today.length +
         res.data.buckets.tomorrow.length +
         res.data.buckets.upcoming.length;
-      if (total > 0) {
-        toast.success(`${total} confirmaciones generadas`);
+      const noPhone = res.data.buckets.no_phone?.length || 0;
+      const created = res.data.total_contacts_created || 0;
+
+      if (total + noPhone > 0) {
+        let msg = `${total} confirmaciones generadas`;
+        if (noPhone > 0) msg += `, ${noPhone} sin teléfono`;
+        if (created > 0) msg += ` (${created} contacto${created > 1 ? "s" : ""} autocreado${created > 1 ? "s" : ""})`;
+        toast.success(msg);
       } else {
         toast.info("No hay reuniones con contactos externos en los próximos 21 días");
       }
@@ -467,6 +761,11 @@ export default function MeetingsConfirmationsPage() {
             {totalToday} pendiente{totalToday > 1 ? "s" : ""} hoy
           </Badge>
         )}
+      </div>
+
+      {/* Debugger panel */}
+      <div className="mb-6">
+        <DebuggerPanel />
       </div>
 
       {/* Buckets */}
