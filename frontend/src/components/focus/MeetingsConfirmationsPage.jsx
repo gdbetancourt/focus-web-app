@@ -637,6 +637,7 @@ function formatLocalDate(isoStr) {
       month: "long",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "America/Mexico_City",
     });
   } catch {
     return isoStr;
