@@ -521,7 +521,7 @@ export default function CurrentCasesDeliveryPage() {
       });
     });
     
-    // Send to backend (fire and forget with error handling)
+    // Send to backend
     try {
       await api.patch(`/cases/${caseId}/checklist/cell`, {
         group_id: groupId,
@@ -529,6 +529,14 @@ export default function CurrentCasesDeliveryPage() {
         column_id: columnId,
         checked: newValue
       });
+      // Silent refetch to pick up recalculated weekly_status from server
+      const res = await api.get("/cases/delivery/all");
+      const allCases = res.data.cases || [];
+      setCases(allCases);
+      setGrouped(res.data.grouped || {});
+      calculateGlobalStatus(allCases);
+      // Notify FocusLayout to refresh navigation semaphore
+      window.dispatchEvent(new CustomEvent("focus:traffic-light-changed"));
     } catch (error) {
       console.error("Error updating checkbox:", error);
       toast.error("Error guardando - recargando datos...");

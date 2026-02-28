@@ -31,25 +31,30 @@ export default function FocusLayout() {
   const currentSection = FOCUS_SECTIONS[currentSectionIndex];
 
   // Load traffic light status
+  const loadTrafficLight = useCallback(async () => {
+    try {
+      const res = await api.get("/focus/traffic-light-status");
+      setTrafficLightStatus(res.data || {});
+    } catch (error) {
+      console.error("Error loading traffic light status:", error);
+      const defaultStatus = {};
+      FOCUS_SECTIONS.forEach(s => defaultStatus[s.id] = "gray");
+      setTrafficLightStatus(defaultStatus);
+    }
+  }, []);
+
   useEffect(() => {
-    const loadTrafficLight = async () => {
-      try {
-        const res = await api.get("/focus/traffic-light-status");
-        setTrafficLightStatus(res.data || {});
-      } catch (error) {
-        console.error("Error loading traffic light status:", error);
-        // Set all to gray on error
-        const defaultStatus = {};
-        FOCUS_SECTIONS.forEach(s => defaultStatus[s.id] = "gray");
-        setTrafficLightStatus(defaultStatus);
-      }
-    };
-    
     loadTrafficLight();
-    // Refresh every 2 minutes
     const interval = setInterval(loadTrafficLight, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadTrafficLight]);
+
+  // Refresh navigation semaphore when child pages signal a change
+  useEffect(() => {
+    const handler = () => loadTrafficLight();
+    window.addEventListener("focus:traffic-light-changed", handler);
+    return () => window.removeEventListener("focus:traffic-light-changed", handler);
+  }, [loadTrafficLight]);
 
   // Navigation handlers
   const goToPrevSection = () => {
