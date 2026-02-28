@@ -1054,10 +1054,15 @@ export default function ContactSheet({
     if (!idToUse) return;
     setLoadingCases(true);
     try {
-      const res = await api.get(`/cases/by-contact/${idToUse}`);
-      const cases = res.data || [];
+      const res = await api.get(`/contacts/${idToUse}/cases`);
+      const rawCases = res.data?.cases || res.data || [];
+      // Flatten case_roles from the matching contact entry to case level
+      const cases = rawCases.map(c => {
+        const contactEntry = (c.contacts || []).find(ct => ct.id === idToUse);
+        return { ...c, case_roles: contactEntry?.case_roles || [] };
+      });
       setCaseHistory(cases);
-      
+
       // Hydrate caseRoles from the backend response
       // This ensures the modal shows the correct pre-selected roles
       const rolesMap = {};
