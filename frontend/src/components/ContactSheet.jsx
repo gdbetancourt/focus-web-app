@@ -1219,17 +1219,14 @@ export default function ContactSheet({
 
   // Create new case with this contact
   const createNewCase = async () => {
-    if (!newCaseData.name.trim()) {
-      toast.error("El nombre del caso es requerido");
-      return;
-    }
-    
+    if (!newCaseData.name.trim() || savingNewCase) return;
+
     const contactId = contact?.id || formData.id;
     if (!contactId && !isCreateMode) {
       toast.error("Primero guarda el contacto");
       return;
     }
-    
+
     setSavingNewCase(true);
     try {
       const casePayload = {
@@ -1241,22 +1238,27 @@ export default function ContactSheet({
         contact_ids: contactId ? [contactId] : [],
         quotes: []
       };
-      
+
       const res = await api.post("/cases/", casePayload);
-      
+
       toast.success(`Caso creado: ${newCaseData.name}`);
       setCreatingNewCase(false);
       setAddingCase(false);
       setNewCaseData({ name: "", stage: "caso_solicitado", company_names: [], notes: "" });
-      
+
       // Reload case history
       if (contactId) {
         const casesRes = await api.get(`/contacts/${contactId}/cases`);
         setCaseHistory(casesRes.data.cases || []);
       }
+
+      // Notify parent page to refresh its case list
+      if (onSaved) {
+        onSaved();
+      }
     } catch (error) {
       console.error("Error creating case:", error);
-      toast.error("Error al crear caso");
+      toast.error(error.response?.data?.detail || "Error al crear caso");
     } finally {
       setSavingNewCase(false);
     }

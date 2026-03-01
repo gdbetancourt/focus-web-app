@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Building2,
   Users,
+  Plus,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "../ui/card";
@@ -24,6 +25,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import api from "../../lib/api";
+import { CaseCreateDialog } from "./CaseCreateDialog";
 
 const SECTION = getSectionById("pre-projects");
 const DEFAULT_PAGE_SIZE = 10;
@@ -66,6 +68,7 @@ export default function PreProjectsPage() {
   const [stageCounts, setStageCounts] = useState({});
   const [stageCases, setStageCases] = useState({});
   const [stageLoading, setStageLoading] = useState({});
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const formatCurrency = (amount, currency = "MXN") => {
     if (!amount) return "-";
@@ -221,6 +224,14 @@ export default function PreProjectsPage() {
               Todos los Casos (Stage 3)
             </h2>
             <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+                onClick={() => setCreateDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Crear Caso
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -467,6 +478,13 @@ export default function PreProjectsPage() {
           )}
         </div>
       </div>
+
+      <CaseCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        defaultStage="caso_solicitado"
+        onCreated={() => loadCasesSummaryAndFirstPages()}
+      />
     </SectionLayout>
   );
 }

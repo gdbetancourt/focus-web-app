@@ -52,6 +52,7 @@ import api from "../../lib/api";
 import SectionLayout from "./SectionLayout";
 import { getSectionById } from "./focusSections";
 import ContactSheet from "../ContactSheet";
+import { CaseCreateDialog } from "./CaseCreateDialog";
 import { 
   WhatsAppMessageGenerator, 
   WhatsAppButton, 
@@ -247,6 +248,9 @@ export default function CurrentCasesDeliveryPage() {
   
   // Global traffic status
   const [trafficStatus, setTrafficStatus] = useState("gray");
+
+  // Create case dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const loadCases = useCallback(async () => {
     setLoading(true);
@@ -634,16 +638,26 @@ export default function CurrentCasesDeliveryPage() {
               {cases.length} casos Stage 4
             </Badge>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refreshCases}
-            disabled={refreshing}
-            className="border-[#333] text-slate-300 hover:bg-[#1a1a1a]"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Actualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Crear Caso
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshCases}
+              disabled={refreshing}
+              className="border-[#333] text-slate-300 hover:bg-[#1a1a1a]"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
+          </div>
         </div>
 
         {/* Loading state */}
@@ -1189,6 +1203,14 @@ export default function CurrentCasesDeliveryPage() {
         onUrlsGenerated={() => {
           // Optionally reload or log activity
         }}
+      />
+
+      {/* Create Case Dialog */}
+      <CaseCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        defaultStage="ganados"
+        onCreated={() => loadCases()}
       />
     </SectionLayout>
   );

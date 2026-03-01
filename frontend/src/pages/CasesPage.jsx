@@ -627,9 +627,6 @@ export default function CasesPage() {
                           </SelectTrigger>
                           <SelectContent className="bg-[#111] border-[#333]">
                             <SelectItem value="caso_solicitado">Caso Solicitado</SelectItem>
-                            <SelectItem value="caso_presentado">Caso Presentado</SelectItem>
-                            <SelectItem value="interes_en_caso">Interés en Caso</SelectItem>
-                            <SelectItem value="cierre_administrativo">En Cierre Admin.</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -748,9 +745,6 @@ export default function CasesPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-[#111] border-[#333]">
                     <SelectItem value="caso_solicitado">Caso Solicitado</SelectItem>
-                    <SelectItem value="caso_presentado">Caso Presentado</SelectItem>
-                    <SelectItem value="interes_en_caso">Interés en Caso</SelectItem>
-                    <SelectItem value="cierre_administrativo">En Cierre Admin.</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

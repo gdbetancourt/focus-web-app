@@ -26,10 +26,7 @@ export const ALL_CASE_STAGES = [...STAGE_3_VALUES, ...STAGE_4_VALUES];
 
 // Stage labels for display
 export const STAGE_3_LABELS = {
-  caso_solicitado: "Caso Solicitado",
-  caso_presentado: "Caso Presentado",
-  interes_en_caso: "Interés en Caso",
-  cierre_administrativo: "Cierre Administrativo"
+  caso_solicitado: "Caso Solicitado"
 };
 
 export const STAGE_4_LABELS = {
