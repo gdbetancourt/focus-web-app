@@ -20,10 +20,24 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle auth errors
+// Handle auth errors — retry once before logout to prevent
+// spurious logouts under rapid-fire requests (BUG-6)
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        return await api(originalRequest);
+      } catch (retryError) {
+        // Retry also failed → genuine auth failure, logout
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+        return Promise.reject(retryError);
+      }
+    }
+    // Non-401 errors or already-retried 401 → reject normally
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       window.location.href = "/login";

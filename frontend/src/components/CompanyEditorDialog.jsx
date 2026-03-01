@@ -276,7 +276,7 @@ export function CompanyEditorDialog({
     }
     setSearchingCases(true);
     try {
-      const res = await api.get(`/cases/search?q=${encodeURIComponent(query)}&limit=10`);
+      const res = await api.get(`/cases/?search=${encodeURIComponent(query)}&limit=10`);
       // Filter out already associated cases
       const existingIds = new Set(cases.map(c => c.id));
       setCaseSearchResults((res.data.cases || res.data || []).filter(c => !existingIds.has(c.id)));

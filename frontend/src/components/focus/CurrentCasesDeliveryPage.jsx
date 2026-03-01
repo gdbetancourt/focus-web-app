@@ -10,7 +10,7 @@
  * - Weekly indicators (green/yellow/red)
  * - WhatsApp message generation
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -251,6 +251,9 @@ export default function CurrentCasesDeliveryPage() {
 
   // Create case dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  // Debounce timer for checklist refetch (BUG-6)
+  const refetchTimerRef = useRef(null);
 
   const loadCases = useCallback(async () => {
     setLoading(true);
@@ -533,14 +536,21 @@ export default function CurrentCasesDeliveryPage() {
         column_id: columnId,
         checked: newValue
       });
-      // Silent refetch to pick up recalculated weekly_status from server
-      const res = await api.get("/cases/delivery/all");
-      const allCases = res.data.cases || [];
-      setCases(allCases);
-      setGrouped(res.data.grouped || {});
-      calculateGlobalStatus(allCases);
-      // Notify FocusLayout to refresh navigation semaphore
-      window.dispatchEvent(new CustomEvent("focus:traffic-light-changed"));
+      // Debounced refetch — waits 800ms after last toggle to avoid
+      // stampede of GET /delivery/all under rapid clicks (BUG-6)
+      if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+      refetchTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await api.get("/cases/delivery/all");
+          const allCases = res.data.cases || [];
+          setCases(allCases);
+          setGrouped(res.data.grouped || {});
+          calculateGlobalStatus(allCases);
+          window.dispatchEvent(new CustomEvent("focus:traffic-light-changed"));
+        } catch (refetchErr) {
+          console.error("Error refetching cases:", refetchErr);
+        }
+      }, 800);
     } catch (error) {
       console.error("Error updating checkbox:", error);
       toast.error("Error guardando - recargando datos...");
