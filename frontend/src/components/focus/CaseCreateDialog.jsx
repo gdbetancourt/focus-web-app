@@ -32,15 +32,16 @@ import {
 import api from "../../lib/api";
 import { Plus, Loader2, X } from "lucide-react";
 
-const ALL_STAGE_OPTIONS = { ...STAGE_3_LABELS, ...STAGE_4_LABELS };
-
 export function CaseCreateDialog({
   open,
   onOpenChange,
   defaultStage = "caso_solicitado",
+  stageContext = "stage3",
   contactId = null,
   onCreated,
 }) {
+  const STAGE_OPTIONS = stageContext === "stage4" ? STAGE_4_LABELS : STAGE_3_LABELS;
+
   const [formData, setFormData] = useState({
     name: "",
     stage: defaultStage,
@@ -152,7 +153,7 @@ export function CaseCreateDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(ALL_STAGE_OPTIONS).map(([value, label]) => (
+                {Object.entries(STAGE_OPTIONS).map(([value, label]) => (
                   <SelectItem key={value} value={value}>
                     {label}
                   </SelectItem>

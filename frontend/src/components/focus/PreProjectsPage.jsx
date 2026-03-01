@@ -483,6 +483,7 @@ export default function PreProjectsPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         defaultStage="caso_solicitado"
+        stageContext="stage3"
         onCreated={() => loadCasesSummaryAndFirstPages()}
       />
     </SectionLayout>

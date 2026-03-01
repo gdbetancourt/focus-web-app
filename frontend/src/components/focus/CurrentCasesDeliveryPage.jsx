@@ -145,27 +145,27 @@ const ROLE_COLORS = {
 
 // Delivery stage constants
 const DELIVERY_STAGE_LABELS = {
-  ganados: "En Entrega Activa",
+  ganados: "Ganados",
+  concluidos: "Concluidos",
   contenidos_transcritos: "Contenidos Transcritos",
   reporte_presentado: "Reporte Presentado",
   caso_publicado: "Caso Publicado",
-  concluidos: "Concluidos",
 };
 
 const DELIVERY_STAGE_COLORS = {
   ganados: "bg-green-500/20 text-green-400 border-green-500/50",
+  concluidos: "bg-slate-500/20 text-slate-400 border-slate-500/50",
   contenidos_transcritos: "bg-blue-500/20 text-blue-400 border-blue-500/50",
   reporte_presentado: "bg-purple-500/20 text-purple-400 border-purple-500/50",
   caso_publicado: "bg-amber-500/20 text-amber-400 border-amber-500/50",
-  concluidos: "bg-slate-500/20 text-slate-400 border-slate-500/50",
 };
 
 const DELIVERY_STAGE_ORDER = [
   "ganados",
+  "concluidos",
   "contenidos_transcritos",
   "reporte_presentado",
   "caso_publicado",
-  "concluidos",
 ];
 
 // Get display label for a role
@@ -677,7 +677,6 @@ export default function CurrentCasesDeliveryPage() {
           <div className="space-y-4">
             {DELIVERY_STAGE_ORDER.map((deliveryStage) => {
               const stageCases = grouped[deliveryStage] || [];
-              if (stageCases.length === 0) return null;
               const stageLabel = DELIVERY_STAGE_LABELS[deliveryStage] || deliveryStage;
               const stageColorClass = DELIVERY_STAGE_COLORS[deliveryStage] || "";
               const isStageExpanded = expandedDeliveryStages.includes(deliveryStage);
@@ -699,6 +698,9 @@ export default function CurrentCasesDeliveryPage() {
                   </button>
                   {isStageExpanded && (
                     <div className="px-3 pb-3">
+                      {stageCases.length === 0 ? (
+                        <p className="text-center text-slate-500 text-sm py-4">Sin casos en esta etapa</p>
+                      ) : (
                       <Accordion
                         type="multiple"
                         value={expandedCases}
@@ -956,6 +958,7 @@ export default function CurrentCasesDeliveryPage() {
               );
             })}
                       </Accordion>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1210,6 +1213,7 @@ export default function CurrentCasesDeliveryPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         defaultStage="ganados"
+        stageContext="stage4"
         onCreated={() => loadCases()}
       />
     </SectionLayout>

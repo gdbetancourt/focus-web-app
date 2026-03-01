@@ -627,6 +627,15 @@ export default function CasesPage() {
                           </SelectTrigger>
                           <SelectContent className="bg-[#111] border-[#333]">
                             <SelectItem value="caso_solicitado">Caso Solicitado</SelectItem>
+                            <SelectItem value="caso_presentado">Caso Presentado</SelectItem>
+                            <SelectItem value="interes_en_caso">Interés en Caso</SelectItem>
+                            <SelectItem value="cierre_administrativo">Cierre Administrativo</SelectItem>
+                            <SelectItem value="descartado">Descartado</SelectItem>
+                            <SelectItem value="ganados">Ganados</SelectItem>
+                            <SelectItem value="concluidos">Concluidos</SelectItem>
+                            <SelectItem value="contenidos_transcritos">Contenidos Transcritos</SelectItem>
+                            <SelectItem value="reporte_presentado">Reporte Presentado</SelectItem>
+                            <SelectItem value="caso_publicado">Caso Publicado</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -745,10 +754,14 @@ export default function CasesPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-[#111] border-[#333]">
                     <SelectItem value="caso_solicitado">Caso Solicitado</SelectItem>
+                    <SelectItem value="caso_presentado">Caso Presentado</SelectItem>
+                    <SelectItem value="interes_en_caso">Interés en Caso</SelectItem>
+                    <SelectItem value="cierre_administrativo">Cierre Administrativo</SelectItem>
+                    <SelectItem value="descartado">Descartado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="text-sm text-slate-400 mb-2 block">Status</label>
                 <Select value={importStatus} onValueChange={setImportStatus} disabled={importing}>

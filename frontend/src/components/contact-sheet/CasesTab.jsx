@@ -287,7 +287,11 @@ export function CasesTab({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="caso_solicitado">Solicitado</SelectItem>
+                  <SelectItem value="caso_solicitado">Caso Solicitado</SelectItem>
+                  <SelectItem value="caso_presentado">Caso Presentado</SelectItem>
+                  <SelectItem value="interes_en_caso">Interés en Caso</SelectItem>
+                  <SelectItem value="cierre_administrativo">Cierre Administrativo</SelectItem>
+                  <SelectItem value="descartado">Descartado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
