@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, User, Building2, Store, FileText, Tag, Loader2, Phone } from "lucide-react";
+import { Search, X, User, Building2, Store, FileText, Tag, Loader2, Phone, Briefcase } from "lucide-react";
 import { Input } from "./ui/input";
 import api from "../lib/api";
 import ContactSheet from "./ContactSheet";
@@ -62,6 +62,9 @@ export default function GlobalSearch() {
       case "company":
         // Open company modal instead of navigating
         setSelectedCompany(item);
+        break;
+      case "case":
+        window.open(`/focus/current-cases?highlight=${item.id}`, '_self');
         break;
       case "small_business":
         // For small businesses, we don't have a modal yet - could add later
@@ -166,11 +169,17 @@ export default function GlobalSearch() {
                   items={results.companies} 
                   type="company" 
                 />
-                <ResultSection 
-                  title="Small Businesses" 
-                  icon={Store} 
-                  items={results.small_businesses} 
-                  type="small_business" 
+                <ResultSection
+                  title="Casos"
+                  icon={Briefcase}
+                  items={results.cases}
+                  type="case"
+                />
+                <ResultSection
+                  title="Small Businesses"
+                  icon={Store}
+                  items={results.small_businesses}
+                  type="small_business"
                 />
                 <ResultSection 
                   title="Opportunities" 
