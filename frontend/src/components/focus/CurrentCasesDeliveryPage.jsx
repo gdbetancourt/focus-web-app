@@ -542,10 +542,30 @@ export default function CurrentCasesDeliveryPage() {
       refetchTimerRef.current = setTimeout(async () => {
         try {
           const res = await api.get("/cases/delivery/all");
-          const allCases = res.data.cases || [];
-          setCases(allCases);
+          const serverCases = res.data.cases || [];
+          // Granular merge: update metadata/weekly_status from server
+          // but preserve local checklist state to avoid DOM remount
+          // that would swallow in-flight clicks
+          setCases(prevCases => {
+            const serverMap = new Map(serverCases.map(c => [c.id, c]));
+            const merged = prevCases.map(prevCase => {
+              const serverCase = serverMap.get(prevCase.id);
+              if (!serverCase) return prevCase;
+              return {
+                ...serverCase,
+                checklist: prevCase.checklist ?? serverCase.checklist
+              };
+            });
+            // Add any new cases from server not in local state
+            for (const sc of serverCases) {
+              if (!prevCases.some(p => p.id === sc.id)) {
+                merged.push(sc);
+              }
+            }
+            return merged;
+          });
           setGrouped(res.data.grouped || {});
-          calculateGlobalStatus(allCases);
+          calculateGlobalStatus(serverCases);
           window.dispatchEvent(new CustomEvent("focus:traffic-light-changed"));
         } catch (refetchErr) {
           console.error("Error refetching cases:", refetchErr);
