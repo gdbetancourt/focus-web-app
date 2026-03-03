@@ -391,9 +391,9 @@ export function InviteToEventsTabContent() {
                           <span className={`text-sm ${isChecked ? 'text-green-300' : company.invited_to_any_event ? 'text-slate-400' : 'text-white'}`}>
                             {company.name}
                           </span>
-                          {company.case_count > 0 && (
+                          {company.active_cases_count > 0 && (
                             <span className="ml-2 text-xs text-amber-400">
-                              ({company.case_count} {company.case_count === 1 ? 'caso' : 'casos'})
+                              ({company.active_cases_count} {company.active_cases_count === 1 ? 'caso' : 'casos'})
                             </span>
                           )}
                           {company.invited_to_any_event && !isChecked && (

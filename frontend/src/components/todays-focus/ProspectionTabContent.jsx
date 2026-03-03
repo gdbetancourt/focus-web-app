@@ -436,9 +436,9 @@ export function ProspectionTabContent() {
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </Button>
-                        {company.case_count > 0 && (
+                        {company.active_cases_count > 0 && (
                           <Badge className="bg-green-500/20 text-green-400 text-xs">
-                            {company.case_count} {company.case_count === 1 ? 'caso ganado' : 'casos ganados'}
+                            {company.active_cases_count} {company.active_cases_count === 1 ? 'caso ganado' : 'casos ganados'}
                           </Badge>
                         )}
                         <Badge variant="outline" className="border-[#333] text-slate-400">
