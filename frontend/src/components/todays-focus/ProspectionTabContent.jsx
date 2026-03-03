@@ -31,6 +31,7 @@ import {
 import { toast } from "sonner";
 import api from "../../lib/api";
 import { copyToClipboard } from "../mensajes-hoy/utils";
+import { LINKEDIN_PROFILES } from "../focus/focusSections";
 import { CompanyEditorDialog } from "../CompanyEditorDialog";
 import {
   Building2,
@@ -62,6 +63,7 @@ export function ProspectionTabContent() {
   const [addSearchCompany, setAddSearchCompany] = useState(null);
   const [newKeyword, setNewKeyword] = useState("");
   const [newUrl, setNewUrl] = useState("");
+  const [newProfile, setNewProfile] = useState("");
   const [adding, setAdding] = useState(false);
   
   // Copy URL dialog - select profile
@@ -98,19 +100,21 @@ export function ProspectionTabContent() {
   }, [loadData]);
   
   const handleAddSearch = async () => {
-    if (!addSearchCompany || !newKeyword.trim() || !newUrl.trim()) return;
-    
+    if (!addSearchCompany || !newKeyword.trim() || !newUrl.trim() || !newProfile) return;
+
     setAdding(true);
     try {
       await api.post(`/prospection/companies/${addSearchCompany.id}/searches`, {
         keyword: newKeyword.trim(),
-        url: newUrl.trim()
+        url: newUrl.trim(),
+        assigned_profile: newProfile.toLowerCase()
       });
-      
+
       toast.success("Búsqueda agregada");
       setAddSearchOpen(false);
       setNewKeyword("");
       setNewUrl("");
+      setNewProfile("");
       setAddSearchCompany(null);
       loadData();
     } catch (error) {
@@ -562,6 +566,24 @@ export function ProspectionTabContent() {
                 className="bg-[#0a0a0a] border-[#333]"
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-sm text-slate-400">Perfil asignado</label>
+              <Select value={newProfile} onValueChange={setNewProfile}>
+                <SelectTrigger className="bg-[#0a0a0a] border-[#333]">
+                  <SelectValue placeholder="Selecciona un perfil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LINKEDIN_PROFILES.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        <User className="w-3 h-3" />
+                        {p.name} ({p.label})
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddSearchOpen(false)} className="border-[#333]">
@@ -569,7 +591,7 @@ export function ProspectionTabContent() {
             </Button>
             <Button
               onClick={handleAddSearch}
-              disabled={adding || !newKeyword.trim() || !newUrl.trim()}
+              disabled={adding || !newKeyword.trim() || !newUrl.trim() || !newProfile}
               className="bg-[#ff3300] hover:bg-[#cc2900]"
             >
               {adding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
