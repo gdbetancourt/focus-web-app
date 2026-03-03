@@ -47,12 +47,111 @@ import {
   Edit,
   Check,
   Wrench,
+  ChevronDown,
 } from "lucide-react";
 
 const PROFILES = {
   GB: "Gerardo Betancourt",
   MG: "María del Mar Gargari"
 };
+
+// Build profile groups: known profiles from LINKEDIN_PROFILES + fallback
+const PROFILE_GROUPS = [
+  ...LINKEDIN_PROFILES.map((p) => ({ key: p.id.toLowerCase(), label: `${p.name} (${p.label})` })),
+  { key: "__none__", label: "Sin perfil asignado" },
+];
+
+function SearchProfileGroups({ searches, onCopyUrl, onDeleteSearch }) {
+  const [collapsed, setCollapsed] = useState({});
+  const knownKeys = new Set(LINKEDIN_PROFILES.map((p) => p.id.toLowerCase()));
+
+  const grouped = PROFILE_GROUPS.map((group) => {
+    const items =
+      group.key === "__none__"
+        ? searches.filter((s) => !s.assigned_profile || !knownKeys.has(s.assigned_profile.toLowerCase()))
+        : searches.filter((s) => s.assigned_profile?.toLowerCase() === group.key);
+    return { ...group, items };
+  });
+
+  const toggle = (key) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <div className="space-y-3">
+      {grouped.map((group) => (
+        <div key={group.key} className="border border-[#222] rounded-lg overflow-hidden">
+          <button
+            onClick={() => toggle(group.key)}
+            className="flex items-center justify-between w-full px-3 py-2 bg-[#0a0a0a] hover:bg-[#151515] transition-colors text-left"
+          >
+            <div className="flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-sm font-medium text-slate-300">{group.label}</span>
+              <Badge variant="outline" className="border-[#333] text-slate-500 text-[10px] px-1.5 py-0">
+                {group.items.length}
+              </Badge>
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 text-slate-500 transition-transform ${collapsed[group.key] ? "-rotate-90" : ""}`}
+            />
+          </button>
+          {!collapsed[group.key] && (
+            <div className="px-3 pb-3 pt-2 space-y-2">
+              {group.items.length === 0 ? (
+                <p className="text-xs text-slate-600 text-center py-2">Sin búsquedas</p>
+              ) : (
+                group.items.map((search) => (
+                  <div
+                    key={search.id}
+                    className="flex items-center justify-between p-3 bg-[#111] rounded border border-[#333]"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Search className="w-4 h-4 text-slate-500 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-white">{search.keyword}</p>
+                          {search.last_prospected_by && (
+                            <Badge variant="outline" className="border-[#444] text-slate-400 text-[10px] px-1.5 py-0">
+                              {search.last_prospected_by}
+                            </Badge>
+                          )}
+                        </div>
+                        {search.last_prospected_at && (
+                          <p className="text-xs text-slate-600">
+                            Prospectado: {new Date(search.last_prospected_at).toLocaleDateString("es-MX")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-3">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onCopyUrl(search)}
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-green-400"
+                        title="Copiar URL y marcar como usada"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onDeleteSearch(search.id)}
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-red-400"
+                        title="Eliminar búsqueda"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function ProspectionTabContent() {
   const [companies, setCompanies] = useState([]);
@@ -449,60 +548,12 @@ export function ProspectionTabContent() {
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
                     <div className="space-y-3 mt-2">
-                      {/* Searches List */}
-                      {company.searches?.length > 0 ? (
-                        <div className="space-y-2">
-                          {company.searches.map(search => (
-                            <div
-                              key={search.id}
-                              className="flex items-center justify-between p-3 bg-[#111] rounded border border-[#333]"
-                            >
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <Search className="w-4 h-4 text-slate-500 shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-sm text-white">{search.keyword}</p>
-                                    {search.last_prospected_by && (
-                                      <Badge variant="outline" className="border-[#444] text-slate-400 text-[10px] px-1.5 py-0">
-                                        {search.last_prospected_by}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  {search.last_prospected_at && (
-                                    <p className="text-xs text-slate-600">
-                                      Prospectado: {new Date(search.last_prospected_at).toLocaleDateString('es-MX')}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 ml-3">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleCopyUrl(search)}
-                                  className="h-8 w-8 p-0 text-slate-500 hover:text-green-400"
-                                  title="Copiar URL y marcar como usada"
-                                >
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteSearch(search.id)}
-                                  className="h-8 w-8 p-0 text-slate-500 hover:text-red-400"
-                                  title="Eliminar búsqueda"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-500 text-center py-4">
-                          No hay búsquedas configuradas
-                        </p>
-                      )}
+                      {/* Searches grouped by profile */}
+                      <SearchProfileGroups
+                        searches={company.searches || []}
+                        onCopyUrl={handleCopyUrl}
+                        onDeleteSearch={handleDeleteSearch}
+                      />
                       
                       {/* Add Search Button */}
                       <Button
