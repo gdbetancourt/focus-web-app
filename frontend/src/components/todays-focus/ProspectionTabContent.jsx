@@ -180,6 +180,9 @@ export function ProspectionTabContent() {
   // Edit company state - using CompanyEditorDialog
   const [editCompanyOpen, setEditCompanyOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
+
+  // Company group collapse state (by search count)
+  const [collapsedGroups, setCollapsedGroups] = useState({});
   
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -489,103 +492,148 @@ export function ProspectionTabContent() {
               <p>No hay empresas activas</p>
             </div>
           ) : (
-            <Accordion type="single" collapsible className="space-y-2">
-              {companies.map(company => {
-                const isSelected = selectedForMerge.find(c => c.id === company.id);
-                const isTarget = targetCompany?.id === company.id;
-                const hasInvalidName = isInvalidName(company.name);
-                
-                return (
-                <AccordionItem
-                  key={company.id}
-                  value={company.id}
-                  className={`border rounded-lg overflow-hidden ${isTarget ? 'border-purple-500' : hasInvalidName ? 'border-yellow-500/50' : 'border-[#222]'}`}
-                >
-                  <AccordionTrigger className="hover:no-underline px-4 py-3 bg-[#0a0a0a]">
-                    <div className="flex items-center justify-between w-full pr-4">
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={!!isSelected}
-                          onCheckedChange={() => toggleMergeSelection(company)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <Building2 className={`w-4 h-4 ${hasInvalidName ? 'text-yellow-400' : 'text-blue-400'}`} />
-                        <span className={`font-medium ${hasInvalidName ? 'text-yellow-400' : 'text-white'}`}>
-                          {company.name}
-                        </span>
-                        {hasInvalidName && (
-                          <Badge variant="outline" className="border-yellow-500/30 text-yellow-400 text-xs">
-                            ID numérico
-                          </Badge>
-                        )}
-                        {isTarget && (
-                          <Badge className="bg-purple-500/20 text-purple-400 text-xs">Principal</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditCompany(company);
-                          }}
-                          className="h-7 w-7 p-0 text-slate-400 hover:text-blue-400"
-                          title="Editar empresa"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                        {company.active_cases_count > 0 && (
-                          <Badge className="bg-green-500/20 text-green-400 text-xs">
-                            {company.active_cases_count} {company.active_cases_count === 1 ? 'caso ganado' : 'casos ganados'}
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="border-[#333] text-slate-400">
-                          {company.searches?.length || 0} búsquedas
-                        </Badge>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="space-y-3 mt-2">
-                      {/* Searches grouped by profile */}
-                      <SearchProfileGroups
-                        searches={company.searches || []}
-                        onCopyUrl={handleCopyUrl}
-                        onDeleteSearch={handleDeleteSearch}
-                      />
-                      
-                      {/* Add Search Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setAddSearchCompany(company);
-                          setAddSearchOpen(true);
-                        }}
-                        className="w-full border-dashed border-[#333] text-slate-400 hover:text-white"
+            (() => {
+              // Group companies by search count, sorted ascending by count, then by contacts_count DESC within each group
+              const byCount = {};
+              companies.forEach((c) => {
+                const n = c.searches?.length || 0;
+                (byCount[n] ||= []).push(c);
+              });
+              const groups = Object.keys(byCount)
+                .map(Number)
+                .sort((a, b) => a - b)
+                .map((n) => ({
+                  count: n,
+                  items: byCount[n].sort((a, b) => (b.contacts_count || 0) - (a.contacts_count || 0)),
+                }));
+
+              const toggleGroup = (n) =>
+                setCollapsedGroups((prev) => ({ ...prev, [n]: !prev[n] }));
+
+              return (
+                <div className="space-y-4">
+                  {groups.map(({ count, items }) => (
+                    <div key={count} className="border border-[#222] rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => toggleGroup(count)}
+                        className="flex items-center justify-between w-full px-4 py-2.5 bg-[#0a0a0a] hover:bg-[#151515] transition-colors text-left"
                       >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Agregar búsqueda
-                      </Button>
-                      
-                      {/* Mark as target for merge if selected */}
-                      {isSelected && selectedForMerge.length >= 2 && !isTarget && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleSetTarget(company)}
-                          className="w-full bg-purple-600 hover:bg-purple-700 mt-2"
-                        >
-                          <Check className="w-4 h-4 mr-2" />
-                          Marcar como empresa principal
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Search className="w-4 h-4 text-blue-400" />
+                          <span className="text-sm font-medium text-slate-200">
+                            {count} {count === 1 ? "búsqueda" : "búsquedas"} — {items.length} {items.length === 1 ? "empresa" : "empresas"}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          className={`w-4 h-4 text-slate-500 transition-transform ${collapsedGroups[count] ? "-rotate-90" : ""}`}
+                        />
+                      </button>
+                      {!collapsedGroups[count] && (
+                        <div className="p-2">
+                          <Accordion type="single" collapsible className="space-y-2">
+                            {items.map((company) => {
+                              const isSelected = selectedForMerge.find((c) => c.id === company.id);
+                              const isTarget = targetCompany?.id === company.id;
+                              const hasInvalidName = isInvalidName(company.name);
+
+                              return (
+                                <AccordionItem
+                                  key={company.id}
+                                  value={company.id}
+                                  className={`border rounded-lg overflow-hidden ${isTarget ? "border-purple-500" : hasInvalidName ? "border-yellow-500/50" : "border-[#222]"}`}
+                                >
+                                  <AccordionTrigger className="hover:no-underline px-4 py-3 bg-[#0a0a0a]">
+                                    <div className="flex items-center justify-between w-full pr-4">
+                                      <div className="flex items-center gap-3">
+                                        <Checkbox
+                                          checked={!!isSelected}
+                                          onCheckedChange={() => toggleMergeSelection(company)}
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                        <Building2 className={`w-4 h-4 ${hasInvalidName ? "text-yellow-400" : "text-blue-400"}`} />
+                                        <span className={`font-medium ${hasInvalidName ? "text-yellow-400" : "text-white"}`}>
+                                          {company.name}
+                                        </span>
+                                        {hasInvalidName && (
+                                          <Badge variant="outline" className="border-yellow-500/30 text-yellow-400 text-xs">
+                                            ID numérico
+                                          </Badge>
+                                        )}
+                                        {isTarget && (
+                                          <Badge className="bg-purple-500/20 text-purple-400 text-xs">Principal</Badge>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditCompany(company);
+                                          }}
+                                          className="h-7 w-7 p-0 text-slate-400 hover:text-blue-400"
+                                          title="Editar empresa"
+                                        >
+                                          <Edit className="w-3.5 h-3.5" />
+                                        </Button>
+                                        {company.active_cases_count > 0 && (
+                                          <Badge className="bg-green-500/20 text-green-400 text-xs">
+                                            {company.active_cases_count} {company.active_cases_count === 1 ? "caso ganado" : "casos ganados"}
+                                          </Badge>
+                                        )}
+                                        <Badge variant="outline" className="border-[#333] text-slate-400">
+                                          {company.searches?.length || 0} búsquedas
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent className="px-4 pb-4">
+                                    <div className="space-y-3 mt-2">
+                                      {/* Searches grouped by profile */}
+                                      <SearchProfileGroups
+                                        searches={company.searches || []}
+                                        onCopyUrl={handleCopyUrl}
+                                        onDeleteSearch={handleDeleteSearch}
+                                      />
+
+                                      {/* Add Search Button */}
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setAddSearchCompany(company);
+                                          setAddSearchOpen(true);
+                                        }}
+                                        className="w-full border-dashed border-[#333] text-slate-400 hover:text-white"
+                                      >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Agregar búsqueda
+                                      </Button>
+
+                                      {/* Mark as target for merge if selected */}
+                                      {isSelected && selectedForMerge.length >= 2 && !isTarget && (
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleSetTarget(company)}
+                                          className="w-full bg-purple-600 hover:bg-purple-700 mt-2"
+                                        >
+                                          <Check className="w-4 h-4 mr-2" />
+                                          Marcar como empresa principal
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              );
+                            })}
+                          </Accordion>
+                        </div>
                       )}
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  ))}
+                </div>
               );
-              })}
-            </Accordion>
+            })()
           )}
         </CardContent>
       </Card>
