@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { setTokens, clearTokens } from "../utils/authInterceptor";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -18,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userType, setUserType] = useState(null); // 'staff' or 'external'
   const [permissions, setPermissions] = useState(null); // User permissions
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [token, setToken] = useState(null); // SEC-07 §4.7: memory-only
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,25 +49,7 @@ export const AuthProvider = ({ children }) => {
     }, 5000); // 5 second timeout
     
     try {
-      // First check JWT token (legacy system - higher priority for backwards compatibility)
-      const existingToken = localStorage.getItem("token");
-      if (existingToken) {
-        try {
-          axios.defaults.headers.common["Authorization"] = `Bearer ${existingToken}`;
-          const response = await axios.get(`${API}/auth/me`);
-          setUser(response.data);
-          setToken(existingToken);
-          clearTimeout(authTimeout);
-          setLoading(false);
-          return;
-        } catch (error) {
-          console.log("JWT token invalid, checking Google session...");
-          localStorage.removeItem("token");
-          delete axios.defaults.headers.common["Authorization"];
-        }
-      }
-      
-      // Then check session (via cookie) - unified endpoint for all users
+      // Check session (via cookie) - unified endpoint for all users
       try {
         const response = await axios.get(`${API}/auth/check`, {
           withCredentials: true,
@@ -95,26 +78,26 @@ export const AuthProvider = ({ children }) => {
   // Legacy JWT login (kept for backwards compatibility)
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, { email, password });
-    const { access_token, user: userData } = response.data;
-    
-    localStorage.setItem("token", access_token);
+    const { access_token, refresh_token, user: userData } = response.data;
+
     axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+    setTokens(access_token, refresh_token || null);
     setToken(access_token);
     setUser(userData);
-    
+
     return userData;
   };
 
   // Legacy JWT register (kept for backwards compatibility)
   const register = async (email, password, name) => {
     const response = await axios.post(`${API}/auth/register`, { email, password, name });
-    const { access_token, user: userData } = response.data;
-    
-    localStorage.setItem("token", access_token);
+    const { access_token, refresh_token, user: userData } = response.data;
+
     axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+    setTokens(access_token, refresh_token || null);
     setToken(access_token);
     setUser(userData);
-    
+
     return userData;
   };
 
@@ -125,9 +108,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    // Clear JWT token
-    localStorage.removeItem("token");
+    // Clear JWT + refresh tokens (SEC-07 §4.7: memory-only)
     delete axios.defaults.headers.common["Authorization"];
+    clearTokens();
     setToken(null);
     
     // Clear session cookie
