@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "../lib/api";
 import api from "../lib/api";
+import TareasPanel from "../components/TareasPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Progress } from "../components/ui/progress";
@@ -98,6 +99,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8" data-testid="dashboard">
+      {/* Bandejas Panel */}
+      <TareasPanel />
+
       {/* Header */}
       <div>
         <h1 className="text-4xl font-black text-white tracking-tight">Dashboard</h1>
