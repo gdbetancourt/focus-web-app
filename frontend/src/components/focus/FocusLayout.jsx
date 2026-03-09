@@ -16,6 +16,7 @@ import GlobalSearch from "../GlobalSearch";
 import FocusNavigation from "./FocusNavigation";
 import FOCUS_SECTIONS, { getSectionIndex } from "./focusSections";
 import api from "../../lib/api";
+import TareasPanel from "../TareasPanel";
 
 export default function FocusLayout() {
   const { user, logout } = useAuth();
@@ -235,6 +236,7 @@ export default function FocusLayout() {
         
         {/* Page Content - with top padding to account for fixed header */}
         <div className="p-6 lg:p-8 mt-16">
+          <TareasPanel />
           <Outlet />
         </div>
       </main>
