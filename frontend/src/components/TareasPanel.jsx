@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 
-const ROLES = ['F1-13', 'F1-14', 'ROL-17', 'ROL-16', 'ROL-00', 'YT-11'];
+const ROLES = [
+  { id: 'F1-13', nombre: 'Rafael' },
+  { id: 'F1-14', nombre: 'Daniela' },
+  { id: 'ROL-17', nombre: 'Santiago' },
+  { id: 'ROL-16', nombre: 'Luna' },
+  { id: 'ROL-00', nombre: 'Carlos' },
+  { id: 'YT-11', nombre: 'Marco' },
+];
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 export default function TareasPanel() {
@@ -13,11 +20,11 @@ export default function TareasPanel() {
     const results = {};
     await Promise.all(ROLES.map(async (rol) => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/bandejas/${rol}`, { credentials: 'include' });
+        const res = await fetch(`${BACKEND_URL}/api/bandejas/${rol.id}`, { credentials: 'include' });
         const data = await res.json();
-        results[rol] = data.items || [];
+        results[rol.id] = data.items || [];
       } catch {
-        results[rol] = [];
+        results[rol.id] = [];
       }
     }));
     setBandejas(results);
@@ -30,7 +37,7 @@ export default function TareasPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  const pendientes = (rol) => (bandejas[rol] || []).filter(i => i.estado === 'PENDIENTE');
+  const pendientes = (rolId) => (bandejas[rolId] || []).filter(i => i.estado === 'PENDIENTE');
 
   return (
     <div style={{ padding: '12px 16px', borderBottom: '1px solid #374151', marginBottom: '16px', background: '#1f2937', borderRadius: '8px' }}>
@@ -40,17 +47,17 @@ export default function TareasPanel() {
       </div>
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         {ROLES.map(rol => {
-          const count = pendientes(rol).length;
-          const active = selected === rol;
+          const count = pendientes(rol.id).length;
+          const active = selected === rol.id;
           return (
-            <button key={rol} onClick={() => setSelected(active ? null : rol)}
+            <button key={rol.id} onClick={() => setSelected(active ? null : rol.id)}
               style={{
                 padding: '4px 10px', borderRadius: '9999px', fontSize: '12px', cursor: 'pointer', border: 'none',
                 background: active ? '#3b82f6' : count > 0 ? '#1e3a5f' : '#374151',
                 color: active ? '#fff' : count > 0 ? '#93c5fd' : '#9ca3af',
                 fontWeight: count > 0 ? 600 : 400
               }}>
-              {rol} {count > 0 && <span>({count})</span>}
+              {rol.nombre} {count > 0 && <span>({count})</span>}
             </button>
           );
         })}
