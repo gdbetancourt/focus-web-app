@@ -56,12 +56,13 @@ export default function TareasPanel() {
   const itemList = (items) => items.length === 0
     ? <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Sin items pendientes</p>
     : items.map(item => (
-      <div key={item.id} style={{ marginBottom: '8px', cursor: 'pointer', borderBottom: '1px solid #1f2937', paddingBottom: '6px' }}
-        onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
-        <div style={{ fontSize: '13px', fontWeight: 500, color: '#e5e7eb' }}>{item.referencia || item.tipo_entregable}</div>
-        <div style={{ fontSize: '11px', color: '#6b7280' }}>{item.rol_remitente} · {item.tipo_entregable}</div>
+      <div key={item.id} style={{ marginBottom: '8px', borderBottom: '1px solid #1f2937', paddingBottom: '6px' }}>
+        <div style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
+          <div style={{ fontSize: '13px', fontWeight: 500, color: '#e5e7eb' }}>{item.referencia || item.tipo_entregable}</div>
+          <div style={{ fontSize: '11px', color: '#6b7280' }}>{item.rol_remitente} · {item.tipo_entregable}</div>
+        </div>
         {expanded === item.id && (
-          <pre style={{ fontSize: '12px', marginTop: '6px', whiteSpace: 'pre-wrap', color: '#d1d5db', background: '#1f2937', padding: '8px', borderRadius: '4px' }}>
+          <pre style={{ fontSize: '12px', marginTop: '6px', whiteSpace: 'pre-wrap', color: '#d1d5db', background: '#1f2937', padding: '8px', borderRadius: '4px', userSelect: 'text' }}>
             {item.contenido}
           </pre>
         )}
