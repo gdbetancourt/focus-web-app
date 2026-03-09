@@ -4,7 +4,6 @@ const ROLES = ['F1-13', 'F1-14', 'ROL-17', 'ROL-16', 'ROL-00', 'YT-11'];
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 export default function TareasPanel() {
-  console.log('TareasPanel mounting');
   const [bandejas, setBandejas] = useState({});
   const [selected, setSelected] = useState(null);
   const [expanded, setExpanded] = useState(null);
