@@ -21,7 +21,7 @@ export default function TareasPanel() {
   const fetchAll = async () => {
     // Bandeja DIR-00
     try {
-      const res = await fetch(`${BACKEND_URL}/api/bandejas/DIR-00`, { credentials: 'include', cache: 'no-store' });
+      const res = await fetch(`${BACKEND_URL}/api/bandejas/DIR-00`, { credentials: 'include', cache: 'no-store', headers: { 'X-Rol-Id': 'DIR-00' } });
       const data = await res.json();
       setMisTareas((data.items || []).filter(i => i.estado === 'PENDIENTE'));
     } catch { setMisTareas([]); }
@@ -30,7 +30,7 @@ export default function TareasPanel() {
     const results = {};
     await Promise.all(ROLES_EQUIPO.map(async (rol) => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/bandejas/${rol.id}`, { credentials: 'include', cache: 'no-store' });
+        const res = await fetch(`${BACKEND_URL}/api/bandejas/${rol.id}`, { credentials: 'include', cache: 'no-store', headers: { 'X-Rol-Id': rol.id } });
         const data = await res.json();
         results[rol.id] = (data.items || []).filter(i => i.estado === 'PENDIENTE');
       } catch { results[rol.id] = []; }
