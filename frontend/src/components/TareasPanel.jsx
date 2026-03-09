@@ -9,7 +9,7 @@ const ROLES_EQUIPO = [
   { id: 'YT-11', nombre: 'Marco' },
 ];
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export default function TareasPanel() {
   const [bandejas, setBandejas] = useState({});
