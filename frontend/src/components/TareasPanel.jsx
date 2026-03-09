@@ -7,6 +7,10 @@ const ROLES_EQUIPO = [
   { id: 'ROL-16', nombre: 'Luna' },
   { id: 'ROL-00', nombre: 'Carlos' },
   { id: 'YT-11', nombre: 'Marco' },
+  { id: 'ROL-15', nombre: 'Víctor' },
+  { id: 'ROL-18', nombre: 'Mateo' },
+  { id: 'ROL-19', nombre: 'Valentina' },
+  { id: 'RH-12', nombre: 'Regina' },
 ];
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
