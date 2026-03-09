@@ -53,21 +53,56 @@ export default function TareasPanel() {
     }}>{label}{count > 0 && ` (${count})`}</button>
   );
 
+  const clasificar = (item) => {
+    const ref = (item.referencia || '').toUpperCase();
+    if (ref.startsWith('COWORK:')) return 'Ejecuciones Cowork';
+    if (ref.startsWith('CODE:')) return 'Ejecuciones Code';
+    if (ref.startsWith('DECISION:')) return 'Decisiones';
+    if (ref.startsWith('ESCAL:')) return 'Escalamientos';
+    if (ref.startsWith('INFORME:')) return 'Informes';
+    const t = item.tipo_entregable;
+    if (['dictamen_tecnico','dictamen_seguridad','especificacion_tecnica','codigo_auditoria'].includes(t)) return 'Decisiones';
+    if (t === 'escalamiento') return 'Escalamientos';
+    if (t === 'solicitud_deploy') return 'Ejecuciones Code';
+    if (t === 'prompt_activacion') return 'Ejecuciones Code';
+    return 'Informes';
+  };
+
+  const GRUPO_ORDEN = ['Decisiones', 'Ejecuciones Cowork', 'Ejecuciones Code', 'Escalamientos', 'Informes'];
+
+  const renderItem = (item) => (
+    <div key={item.id} style={{ marginBottom: '8px', borderBottom: '1px solid #1f2937', paddingBottom: '6px' }}>
+      <div style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
+        <div style={{ fontSize: '13px', fontWeight: 500, color: '#e5e7eb' }}>{item.referencia || item.tipo_entregable}</div>
+        <div style={{ fontSize: '11px', color: '#6b7280' }}>{item.rol_remitente} · {item.tipo_entregable}</div>
+      </div>
+      {expanded === item.id && (
+        <pre style={{ fontSize: '12px', marginTop: '6px', whiteSpace: 'pre-wrap', color: '#d1d5db', background: '#1f2937', padding: '8px', borderRadius: '4px', userSelect: 'text' }}>
+          {item.contenido}
+        </pre>
+      )}
+    </div>
+  );
+
   const itemList = (items) => items.length === 0
     ? <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Sin items pendientes</p>
-    : items.map(item => (
-      <div key={item.id} style={{ marginBottom: '8px', borderBottom: '1px solid #1f2937', paddingBottom: '6px' }}>
-        <div style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
-          <div style={{ fontSize: '13px', fontWeight: 500, color: '#e5e7eb' }}>{item.referencia || item.tipo_entregable}</div>
-          <div style={{ fontSize: '11px', color: '#6b7280' }}>{item.rol_remitente} · {item.tipo_entregable}</div>
-        </div>
-        {expanded === item.id && (
-          <pre style={{ fontSize: '12px', marginTop: '6px', whiteSpace: 'pre-wrap', color: '#d1d5db', background: '#1f2937', padding: '8px', borderRadius: '4px', userSelect: 'text' }}>
-            {item.contenido}
-          </pre>
-        )}
+    : items.map(renderItem);
+
+  const groupedItemList = (items) => {
+    if (items.length === 0) return <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Sin items pendientes</p>;
+    const groups = {};
+    items.forEach(item => {
+      const cat = clasificar(item);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item);
+    });
+    return GRUPO_ORDEN.filter(g => groups[g]).map(g => (
+      <div key={g}>
+        <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px', marginTop: '8px', fontWeight: 600 }}>{g} ({groups[g].length})</div>
+        {groups[g].map(renderItem)}
       </div>
     ));
+  };
 
   return (
     <div style={{ marginBottom: '16px' }}>
@@ -82,7 +117,7 @@ export default function TareasPanel() {
         </div>
         {misTareasOpen && (
           <div style={{ background: '#111827', borderRadius: '6px', padding: '10px' }}>
-            {itemList(misTareas)}
+            {groupedItemList(misTareas)}
           </div>
         )}
       </div>
