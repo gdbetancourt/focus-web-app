@@ -41,6 +41,34 @@ export const LINKEDIN_PROFILES = [
  */
 export const FOCUS_SECTIONS = [
   {
+    id: "plan-maestro",
+    label: "Plan Maestro",
+    icon: ClipboardList,
+    path: "/focus/plan-maestro",
+    trafficType: "weekly",
+    subheadline: "Governance, security, migration tracking and decision log for the 5 business units.",
+    steps: [
+      {
+        title: "Review the summary dashboard for blockers.",
+        details: "Check security items EN CURSO, migration items BLOQUEADO, and pending decisions."
+      },
+      {
+        title: "Update item statuses as work progresses.",
+        details: "Use the tabs to navigate Security, Migration, Decisions, Governance, Changelog, Roles, and Specs."
+      },
+      {
+        title: "Log new decisions and changelog entries.",
+        details: "Every version bump and architectural decision should be recorded here."
+      },
+    ],
+    trafficRules: {
+      red: "Security items ALTA still EN CURSO or PENDIENTE",
+      yellow: "Migration items BLOQUEADO or decisions PENDIENTE exist",
+      green: "All security items resolved, no blocked migrations",
+    },
+    sourceComponent: "PlanMaestroPage",
+  },
+  {
     id: "meetings-confirmations",
     label: "Meetings Confirmations",
     icon: CalendarCheck,
@@ -548,34 +576,6 @@ export const FOCUS_SECTIONS = [
       green: "All tasks scheduled for today have been completed",
     },
     sourceComponent: "TodoTabContent",
-  },
-  {
-    id: "plan-maestro",
-    label: "Plan Maestro",
-    icon: ClipboardList,
-    path: "/focus/plan-maestro",
-    trafficType: "weekly",
-    subheadline: "Governance, security, migration tracking and decision log for the 5 business units.",
-    steps: [
-      {
-        title: "Review the summary dashboard for blockers.",
-        details: "Check security items EN CURSO, migration items BLOQUEADO, and pending decisions."
-      },
-      {
-        title: "Update item statuses as work progresses.",
-        details: "Use the tabs to navigate Security, Migration, Decisions, Governance, Changelog, Roles, and Specs."
-      },
-      {
-        title: "Log new decisions and changelog entries.",
-        details: "Every version bump and architectural decision should be recorded here."
-      },
-    ],
-    trafficRules: {
-      red: "Security items ALTA still EN CURSO or PENDIENTE",
-      yellow: "Migration items BLOQUEADO or decisions PENDIENTE exist",
-      green: "All security items resolved, no blocked migrations",
-    },
-    sourceComponent: "PlanMaestroPage",
   },
 ];
 
