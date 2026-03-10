@@ -327,6 +327,14 @@ export function InviteToEventsTabContent() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
+  // Weeks until event (including incomplete weeks)
+  const getWeeksUntil = (dateStr) => {
+    if (!dateStr) return null;
+    const days = getDaysUntil(dateStr);
+    if (days === null || days <= 0) return 0;
+    return Math.ceil(days / 7);
+  };
+
   // Count invited for an event (estimate from event data)
   const getEventInvitedCount = (event) => {
     return event.companies_invited_this_week || 0;
@@ -375,11 +383,12 @@ export function InviteToEventsTabContent() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {events.map((event) => {
                 const daysUntil = getDaysUntil(event.webinar_date);
+                const weeksUntil = getWeeksUntil(event.webinar_date);
                 const isUrgent = daysUntil !== null && daysUntil <= 7;
-                
+
                 return (
-                  <Card 
-                    key={event.id} 
+                  <Card
+                    key={event.id}
                     className={`bg-[#0a0a0a] border-[#222] hover:border-cyan-500/30 transition-all cursor-pointer ${
                       isUrgent ? 'border-orange-500/30' : ''
                     }`}
@@ -397,7 +406,7 @@ export function InviteToEventsTabContent() {
                           </Badge>
                         )}
                       </div>
-                      
+
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-slate-400">
                           <Calendar className="w-3.5 h-3.5" />
@@ -406,7 +415,7 @@ export function InviteToEventsTabContent() {
                             <span className="text-slate-500">· {event.webinar_time}</span>
                           )}
                         </div>
-                        
+
                         {daysUntil !== null && (
                           <div className="flex items-center gap-2 text-slate-500">
                             <Clock className="w-3.5 h-3.5" />
@@ -415,6 +424,22 @@ export function InviteToEventsTabContent() {
                             </span>
                           </div>
                         )}
+
+                        {weeksUntil !== null && weeksUntil > 0 && (
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>
+                              {weeksUntil === 1 ? "1 semana" : `${weeksUntil} semanas`}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <Users className="w-3.5 h-3.5" />
+                          <span className={event.registrants_count > 0 ? "text-cyan-400" : ""}>
+                            {event.registrants_count || 0} registrados
+                          </span>
+                        </div>
                       </div>
                       
                       <div className="mt-4 pt-3 border-t border-[#222] space-y-2">
