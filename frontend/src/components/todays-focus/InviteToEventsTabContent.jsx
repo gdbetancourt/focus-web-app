@@ -48,6 +48,7 @@ import {
   Linkedin,
   ExternalLink,
   Power,
+  Users,
 } from "lucide-react";
 
 export function InviteToEventsTabContent() {
@@ -68,6 +69,7 @@ export function InviteToEventsTabContent() {
   const [industries, setIndustries] = useState([]);
   const [togglingIndustry, setTogglingIndustry] = useState(null);
   const [confirmDeactivateIndustry, setConfirmDeactivateIndustry] = useState(null);
+  const [showOnlyInvited, setShowOnlyInvited] = useState(false);
 
   // Ask for confirmation before deactivating
   const askDeactivate = (e, company) => {
@@ -239,9 +241,11 @@ export function InviteToEventsTabContent() {
   };
 
   // Filter companies
-  const filteredCompanies = companies.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCompanies = companies.filter(c => {
+    if (!c.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (showOnlyInvited && !c.invited_this_week) return false;
+    return true;
+  });
 
   // Group companies by industry for accordion view
   // Build groups dynamically from company data, enrich with industry metadata
@@ -285,7 +289,12 @@ export function InviteToEventsTabContent() {
       }
     }
 
-    return Object.values(groupMap).sort((a, b) => a.name.localeCompare(b.name));
+    // Sort companies within each group by contacts_count desc
+    const groups = Object.values(groupMap);
+    for (const g of groups) {
+      g.companies.sort((a, b) => (b.contacts_count || 0) - (a.contacts_count || 0));
+    }
+    return groups.sort((a, b) => a.name.localeCompare(b.name));
   })();
 
   // Calculate if company is checked (considering pending changes)
@@ -478,12 +487,19 @@ export function InviteToEventsTabContent() {
                   {companies.filter(c => !c.invited_this_week).length} pendientes
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowOnlyInvited(prev => !prev)}
+                className={`flex items-center gap-2 rounded-md px-2 py-0.5 transition-colors ${
+                  showOnlyInvited
+                    ? "bg-green-500/20 ring-1 ring-green-500/40"
+                    : "hover:bg-[#1a1a1a]"
+                }`}
+              >
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                 <span className="text-green-400">
                   {companies.filter(c => c.invited_this_week).length} invitadas
                 </span>
-              </div>
+              </button>
               {pendingChanges.size > 0 && (
                 <Badge className="bg-cyan-500/20 text-cyan-400">
                   {pendingChanges.size} cambios sin guardar
@@ -575,6 +591,12 @@ export function InviteToEventsTabContent() {
                                       Modificado
                                     </Badge>
                                   )}
+                                  <span className={`flex items-center gap-1 text-xs shrink-0 ${
+                                    (company.contacts_count || 0) > 0 ? "text-cyan-400" : "text-slate-600"
+                                  }`} title="Contactos asociados">
+                                    <Users className="w-3 h-3" />
+                                    {company.contacts_count || 0}
+                                  </span>
                                   <button
                                     title="Desactivar de outbound"
                                     className="p-1 rounded text-green-500 hover:bg-red-500/20 hover:text-red-400 transition-colors shrink-0"
