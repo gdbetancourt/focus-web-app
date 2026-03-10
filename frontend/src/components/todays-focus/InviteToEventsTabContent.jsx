@@ -70,6 +70,7 @@ export function InviteToEventsTabContent() {
   const [togglingIndustry, setTogglingIndustry] = useState(null);
   const [confirmDeactivateIndustry, setConfirmDeactivateIndustry] = useState(null);
   const [showOnlyInvited, setShowOnlyInvited] = useState(false);
+  const [averageShowup, setAverageShowup] = useState(0);
 
   // Ask for confirmation before deactivating
   const askDeactivate = (e, company) => {
@@ -134,6 +135,7 @@ export function InviteToEventsTabContent() {
       const res = await api.get("/todays-focus/events-for-invitations");
       setEvents(res.data.events || []);
       setCurrentWeek(res.data.current_week || "");
+      setAverageShowup(res.data.average_showup || 0);
     } catch (error) {
       console.error("Error loading events:", error);
       toast.error("Error al cargar eventos");
@@ -385,12 +387,21 @@ export function InviteToEventsTabContent() {
                 const daysUntil = getDaysUntil(event.webinar_date);
                 const weeksUntil = getWeeksUntil(event.webinar_date);
                 const isUrgent = daysUntil !== null && daysUntil <= 7;
+                const registrants = event.registrants_count || 0;
+                const showupRate = averageShowup / 100;
+                const expectedShowups = Math.round(registrants * showupRate);
+                const isShowupSafe = expectedShowups >= 50;
+                const registrantsNeeded = showupRate > 0
+                  ? Math.ceil(50 / showupRate) - registrants
+                  : 0;
 
                 return (
                   <Card
                     key={event.id}
-                    className={`bg-[#0a0a0a] border-[#222] hover:border-cyan-500/30 transition-all cursor-pointer ${
-                      isUrgent ? 'border-orange-500/30' : ''
+                    className={`bg-[#0a0a0a] transition-all cursor-pointer ${
+                      isShowupSafe
+                        ? 'border-green-500/40 hover:border-green-500/60'
+                        : 'border-yellow-500/40 hover:border-yellow-500/60'
                     }`}
                     onClick={() => openInviteDialog(event)}
                     data-testid={`event-card-${event.id}`}
@@ -400,11 +411,13 @@ export function InviteToEventsTabContent() {
                         <h3 className="font-medium text-white text-sm leading-tight line-clamp-2">
                           {event.name}
                         </h3>
-                        {isUrgent && (
-                          <Badge className="bg-orange-500/20 text-orange-400 text-xs shrink-0 ml-2">
-                            Urgente
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          {isUrgent && (
+                            <Badge className="bg-orange-500/20 text-orange-400 text-xs">
+                              Urgente
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
                       <div className="space-y-2 text-sm">
@@ -436,10 +449,33 @@ export function InviteToEventsTabContent() {
 
                         <div className="flex items-center gap-2 text-slate-400">
                           <Users className="w-3.5 h-3.5" />
-                          <span className={event.registrants_count > 0 ? "text-cyan-400" : ""}>
-                            {event.registrants_count || 0} registrados
+                          <span className={registrants > 0 ? "text-cyan-400" : ""}>
+                            {registrants} registrados
                           </span>
                         </div>
+
+                        {/* Expected show-ups */}
+                        <div className={`flex items-center gap-2 ${
+                          isShowupSafe ? "text-green-400" : "text-yellow-400"
+                        }`}>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>
+                            ~{expectedShowups} show-ups esperados
+                            {averageShowup > 0 && (
+                              <span className="text-slate-500 ml-1">({averageShowup}%)</span>
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Registrants needed for yellow zone */}
+                        {!isShowupSafe && registrantsNeeded > 0 && (
+                          <div className="flex items-center gap-2 text-yellow-500/80">
+                            <span className="w-3.5" />
+                            <span className="text-xs">
+                              Faltan {registrantsNeeded} registros para zona segura
+                            </span>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="mt-4 pt-3 border-t border-[#222] space-y-2">
