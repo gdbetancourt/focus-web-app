@@ -19,6 +19,7 @@ import {
 import { ScrollArea } from "../ui/scroll-area";
 import { toast } from "sonner";
 import api from "../../lib/api";
+import { Switch } from "../ui/switch";
 import {
   RefreshCw,
   Calendar,
@@ -32,6 +33,7 @@ import {
   CircleDot,
   Linkedin,
   ExternalLink,
+  Power,
 } from "lucide-react";
 
 export function InviteToEventsTabContent() {
@@ -47,6 +49,24 @@ export function InviteToEventsTabContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingChanges, setPendingChanges] = useState(new Set());
   const [saving, setSaving] = useState(false);
+  const [togglingCompany, setTogglingCompany] = useState(null);
+
+  // Toggle company outbound status
+  const handleToggleOutbound = async (e, company) => {
+    e.stopPropagation();
+    setTogglingCompany(company.id);
+    try {
+      await api.patch(`/prospection/companies/${company.id}/toggle-active`);
+      // Remove the company from the list (it's no longer outbound)
+      setCompanies(prev => prev.filter(c => c.id !== company.id));
+      toast.success(`${company.name} desactivada de outbound`);
+    } catch (error) {
+      console.error("Error toggling company:", error);
+      toast.error("Error al cambiar estado de empresa");
+    } finally {
+      setTogglingCompany(null);
+    }
+  };
 
   // Load events
   const loadEvents = useCallback(async () => {
@@ -410,6 +430,18 @@ export function InviteToEventsTabContent() {
                             Modificado
                           </Badge>
                         )}
+                        <button
+                          title="Desactivar de outbound"
+                          className="p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400 transition-colors shrink-0"
+                          onClick={(e) => handleToggleOutbound(e, company)}
+                          disabled={togglingCompany === company.id}
+                        >
+                          {togglingCompany === company.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Power className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     );
                   })}
