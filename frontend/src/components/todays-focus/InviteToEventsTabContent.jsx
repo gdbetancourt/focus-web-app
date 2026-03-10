@@ -19,7 +19,6 @@ import {
 import { ScrollArea } from "../ui/scroll-area";
 import { toast } from "sonner";
 import api from "../../lib/api";
-import { Switch } from "../ui/switch";
 import {
   RefreshCw,
   Calendar,
