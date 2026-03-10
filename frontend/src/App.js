@@ -28,6 +28,7 @@ import {
   EmailFollowUpPage,
   PreProjectsPage,
   TasksOutsideSystemPage,
+  PlanMaestroPage,
   YouTubeIdeasPage,
   CurrentCasesPage,
   MergeDuplicatesFocusPage,
@@ -315,6 +316,7 @@ function AppRoutes() {
             <Route path="focus/merge-duplicates" element={<MergeDuplicatesFocusPage />} />
             <Route path="focus/analytics" element={<AnalyticsPage />} />
             <Route path="focus/tasks-outside-system" element={<TasksOutsideSystemPage />} />
+            <Route path="focus/plan-maestro" element={<PlanMaestroPage />} />
             
             {/* Asset Pages */}
             <Route path="focus/assets/contacts" element={<ContactsAssetPage />} />

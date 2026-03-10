@@ -32,6 +32,7 @@ export {
   CurrentCasesPage,
   MergeDuplicatesFocusPage,
   AnalyticsPage,
+  PlanMaestroPage,
 } from './pages';
 
 // Asset Pages
