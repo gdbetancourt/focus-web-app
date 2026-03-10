@@ -245,11 +245,11 @@ export function InviteToEventsTabContent() {
 
   // Group companies by industry for accordion view
   const groupedByIndustry = (() => {
-    // Only outbound industries
-    const outboundIndustries = industries.filter(ind => ind.classification === "outbound");
+    // Show all industries that have companies (don't filter by classification)
+    const allIndustryCodes = new Set(industries.map(i => i.code));
     const groups = [];
 
-    for (const ind of outboundIndustries) {
+    for (const ind of industries) {
       const companiesInIndustry = filteredCompanies.filter(c =>
         (c.industries || []).includes(ind.code)
       );
@@ -259,7 +259,6 @@ export function InviteToEventsTabContent() {
     }
 
     // Companies with no matching industry ("Sin industria")
-    const allIndustryCodes = new Set(outboundIndustries.map(i => i.code));
     const noIndustry = filteredCompanies.filter(c => {
       const ci = c.industries || [];
       return ci.length === 0 || !ci.some(code => allIndustryCodes.has(code));
