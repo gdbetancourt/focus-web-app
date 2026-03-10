@@ -30,12 +30,17 @@ import {
 import { toast } from "sonner";
 import api from "../../lib/api";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../ui/accordion";
+import {
   RefreshCw,
   Calendar,
   Building2,
   CheckCircle2,
   Clock,
-  Users,
   Save,
   Search,
   Send,
@@ -60,6 +65,9 @@ export function InviteToEventsTabContent() {
   const [saving, setSaving] = useState(false);
   const [togglingCompany, setTogglingCompany] = useState(null);
   const [confirmDeactivate, setConfirmDeactivate] = useState(null);
+  const [industries, setIndustries] = useState([]);
+  const [togglingIndustry, setTogglingIndustry] = useState(null);
+  const [confirmDeactivateIndustry, setConfirmDeactivateIndustry] = useState(null);
 
   // Ask for confirmation before deactivating
   const askDeactivate = (e, company) => {
@@ -82,6 +90,38 @@ export function InviteToEventsTabContent() {
       toast.error("Error al cambiar estado de empresa");
     } finally {
       setTogglingCompany(null);
+    }
+  };
+
+  // Ask for confirmation before deactivating an industry
+  const askDeactivateIndustry = (e, industry) => {
+    e.stopPropagation();
+    setConfirmDeactivateIndustry(industry);
+  };
+
+  // Actually deactivate industry after confirmation
+  const handleConfirmDeactivateIndustry = async () => {
+    if (!confirmDeactivateIndustry) return;
+    const industry = confirmDeactivateIndustry;
+    setConfirmDeactivateIndustry(null);
+    setTogglingIndustry(industry.code);
+    try {
+      const res = await api.patch(`/todays-focus/industries/${industry.code}/toggle-outbound`);
+      const { companies_updated, new_classification } = res.data;
+      if (new_classification === "inbound") {
+        // Remove all companies that belong to this industry
+        setCompanies(prev => prev.filter(c => !(c.industries || []).includes(industry.code)));
+        // Update industry in local state
+        setIndustries(prev => prev.map(ind =>
+          ind.code === industry.code ? { ...ind, classification: "inbound" } : ind
+        ));
+        toast.success(`${industry.name} desactivada (${companies_updated} empresas afectadas)`);
+      }
+    } catch (error) {
+      console.error("Error toggling industry:", error);
+      toast.error("Error al cambiar estado de industria");
+    } finally {
+      setTogglingIndustry(null);
     }
   };
 
@@ -113,8 +153,12 @@ export function InviteToEventsTabContent() {
     setSearchTerm("");
     
     try {
-      const res = await api.get(`/todays-focus/events/${event.id}/company-invitations`);
-      setCompanies(res.data.companies || []);
+      const [companiesRes, industriesRes] = await Promise.all([
+        api.get(`/todays-focus/events/${event.id}/company-invitations`),
+        api.get("/todays-focus/industries-for-invitations"),
+      ]);
+      setCompanies(companiesRes.data.companies || []);
+      setIndustries(industriesRes.data.industries || []);
     } catch (error) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar empresas");
@@ -189,9 +233,45 @@ export function InviteToEventsTabContent() {
   };
 
   // Filter companies
-  const filteredCompanies = companies.filter(c => 
+  const filteredCompanies = companies.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Group companies by industry for accordion view
+  const groupedByIndustry = (() => {
+    // Only outbound industries
+    const outboundIndustries = industries.filter(ind => ind.classification === "outbound");
+    const groups = [];
+
+    for (const ind of outboundIndustries) {
+      const companiesInIndustry = filteredCompanies.filter(c =>
+        (c.industries || []).includes(ind.code)
+      );
+      if (companiesInIndustry.length > 0) {
+        groups.push({ ...ind, companies: companiesInIndustry });
+      }
+    }
+
+    // Companies with no matching industry ("Sin industria")
+    const allIndustryCodes = new Set(outboundIndustries.map(i => i.code));
+    const noIndustry = filteredCompanies.filter(c => {
+      const ci = c.industries || [];
+      return ci.length === 0 || !ci.some(code => allIndustryCodes.has(code));
+    });
+    if (noIndustry.length > 0) {
+      groups.push({
+        code: "_sin_industria",
+        name: "Sin industria",
+        color: "#64748b",
+        classification: "outbound",
+        companies: noIndustry,
+      });
+    }
+
+    // Sort groups by name
+    groups.sort((a, b) => a.name.localeCompare(b.name));
+    return groups;
+  })();
 
   // Calculate if company is checked (considering pending changes)
   const isCompanyChecked = (company) => {
@@ -404,71 +484,108 @@ export function InviteToEventsTabContent() {
               </div>
             ) : (
               <ScrollArea className="h-[400px] pr-4">
-                <div className="space-y-1">
-                  {filteredCompanies.map((company) => {
-                    const isChecked = isCompanyChecked(company);
-                    const hasChange = pendingChanges.has(company.id);
-                    
-                    return (
-                      <div
-                        key={company.id || company.name}
-                        className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
-                          isChecked 
-                            ? 'bg-green-500/10 border-green-500/30' 
-                            : 'bg-[#0a0a0a] border-[#222] hover:border-[#333]'
-                        } ${hasChange ? 'ring-2 ring-cyan-500/50' : ''}`}
-                        onClick={() => toggleCompanyInvitation(company.id)}
-                      >
-                        <Checkbox
-                          checked={isChecked}
-                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 pointer-events-none"
-                        />
-                        <Building2 className={`w-4 h-4 ${isChecked ? 'text-green-400' : 'text-slate-500'}`} />
-                        <div className="flex-1 min-w-0">
-                          <span className={`text-sm ${isChecked ? 'text-green-300' : company.invited_to_any_event ? 'text-slate-400' : 'text-white'}`}>
-                            {company.name}
-                          </span>
-                          {company.active_cases_count > 0 && (
-                            <span className="ml-2 text-xs text-amber-400">
-                              ({company.active_cases_count} {company.active_cases_count === 1 ? 'caso' : 'casos'})
+                {groupedByIndustry.length > 0 ? (
+                  <Accordion type="multiple" defaultValue={groupedByIndustry.map(g => g.code)} className="space-y-1">
+                    {groupedByIndustry.map((group) => (
+                      <AccordionItem key={group.code} value={group.code} className="border-[#222] border rounded-lg overflow-hidden">
+                        <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-[#1a1a1a]">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: group.color }}
+                            />
+                            <span className="text-sm font-medium text-white truncate">
+                              {group.name}
                             </span>
-                          )}
-                          {company.invited_to_any_event && !isChecked && (
-                            <span className="ml-2 text-xs text-slate-500">
-                              (invitada a otro evento)
-                            </span>
-                          )}
-                        </div>
-                        {isChecked && !hasChange && (
-                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                        )}
-                        {hasChange && (
-                          <Badge className="bg-cyan-500/20 text-cyan-400 text-xs shrink-0">
-                            Modificado
-                          </Badge>
-                        )}
-                        <button
-                          title="Desactivar de outbound"
-                          className="p-1 rounded text-green-500 hover:bg-red-500/20 hover:text-red-400 transition-colors shrink-0"
-                          onClick={(e) => askDeactivate(e, company)}
-                          disabled={togglingCompany === company.id}
-                        >
-                          {togglingCompany === company.id ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Power className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {filteredCompanies.length === 0 && (
-                    <div className="text-center py-8 text-slate-500">
-                      <Building2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                      <p>No se encontraron empresas</p>
-                    </div>
-                  )}
-                </div>
+                            <Badge variant="outline" className="text-slate-400 border-slate-600 text-xs shrink-0">
+                              {group.companies.length}
+                            </Badge>
+                            {group.code !== "_sin_industria" && (
+                              <button
+                                title="Desactivar industria de outbound"
+                                className="p-1 rounded text-green-500 hover:bg-red-500/20 hover:text-red-400 transition-colors shrink-0 ml-auto mr-2"
+                                onClick={(e) => askDeactivateIndustry(e, group)}
+                                disabled={togglingIndustry === group.code}
+                              >
+                                {togglingIndustry === group.code ? (
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Power className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-1 pb-1">
+                          <div className="space-y-1">
+                            {group.companies.map((company) => {
+                              const isChecked = isCompanyChecked(company);
+                              const hasChange = pendingChanges.has(company.id);
+
+                              return (
+                                <div
+                                  key={`${group.code}-${company.id}`}
+                                  className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all cursor-pointer ${
+                                    isChecked
+                                      ? "bg-green-500/10 border-green-500/30"
+                                      : "bg-[#0a0a0a] border-[#1a1a1a] hover:border-[#333]"
+                                  } ${hasChange ? "ring-2 ring-cyan-500/50" : ""}`}
+                                  onClick={() => toggleCompanyInvitation(company.id)}
+                                >
+                                  <Checkbox
+                                    checked={isChecked}
+                                    className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 pointer-events-none"
+                                  />
+                                  <Building2 className={`w-3.5 h-3.5 ${isChecked ? "text-green-400" : "text-slate-500"}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <span className={`text-sm ${isChecked ? "text-green-300" : company.invited_to_any_event ? "text-slate-400" : "text-white"}`}>
+                                      {company.name}
+                                    </span>
+                                    {company.active_cases_count > 0 && (
+                                      <span className="ml-2 text-xs text-amber-400">
+                                        ({company.active_cases_count} {company.active_cases_count === 1 ? "caso" : "casos"})
+                                      </span>
+                                    )}
+                                    {company.invited_to_any_event && !isChecked && (
+                                      <span className="ml-2 text-xs text-slate-500">
+                                        (invitada a otro evento)
+                                      </span>
+                                    )}
+                                  </div>
+                                  {isChecked && !hasChange && (
+                                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                                  )}
+                                  {hasChange && (
+                                    <Badge className="bg-cyan-500/20 text-cyan-400 text-xs shrink-0">
+                                      Modificado
+                                    </Badge>
+                                  )}
+                                  <button
+                                    title="Desactivar de outbound"
+                                    className="p-1 rounded text-green-500 hover:bg-red-500/20 hover:text-red-400 transition-colors shrink-0"
+                                    onClick={(e) => askDeactivate(e, company)}
+                                    disabled={togglingCompany === company.id}
+                                  >
+                                    {togglingCompany === company.id ? (
+                                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Power className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : filteredCompanies.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <Building2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p>No se encontraron empresas</p>
+                  </div>
+                ) : null}
               </ScrollArea>
             )}
           </div>
@@ -497,7 +614,7 @@ export function InviteToEventsTabContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm Deactivation Dialog */}
+      {/* Confirm Company Deactivation Dialog */}
       <AlertDialog open={!!confirmDeactivate} onOpenChange={(open) => !open && setConfirmDeactivate(null)}>
         <AlertDialogContent className="bg-[#111] border-[#222] text-white">
           <AlertDialogHeader>
@@ -516,6 +633,30 @@ export function InviteToEventsTabContent() {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Desactivar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Industry Deactivation Dialog */}
+      <AlertDialog open={!!confirmDeactivateIndustry} onOpenChange={(open) => !open && setConfirmDeactivateIndustry(null)}>
+        <AlertDialogContent className="bg-[#111] border-[#222] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desactivar industria de outbound</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              ¿Estás seguro de que quieres desactivar la industria <span className="text-white font-medium">{confirmDeactivateIndustry?.name}</span> de outbound?
+              Todas las empresas dentro de esta industria ({confirmDeactivateIndustry?.companies?.length || 0}) serán desactivadas de outbound.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[#333] text-white hover:bg-[#222]">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeactivateIndustry}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Desactivar industria
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

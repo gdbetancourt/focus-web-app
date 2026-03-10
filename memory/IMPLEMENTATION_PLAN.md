@@ -79,6 +79,25 @@
 
 ---
 
+## 🟣 PRIORIDAD FASE 2: Unificación del Modelo de Industrias
+> **Objetivo:** Migrar todo el sistema al modelo unificado `industries[]` (array) como fuente de verdad
+> **Contexto:** La feature de acordeones por industria en Invitaciones a Eventos ya usa `industries[]` como fuente de verdad (con fallback a `industry_code`/`industry`). El resto del sistema aún usa los campos legacy.
+
+| Prioridad | Tarea | Detalle |
+|-----------|-------|---------|
+| Alta | Migrar Companies.jsx al modelo `industries[]` | Actualmente agrupa por `industry_code`. Cambiar a `industries[]` |
+| Alta | Migrar prospection router al modelo `industries[]` | Filtros y queries usan `industry_code` como campo principal |
+| Alta | Migrar industries router propagación | `PUT /industries/{id}` propaga vía `industry_code`. Agregar propagación vía `industries[]` array con `$in` |
+| Media | Migrar SmallBusinessFinder y VenueFinder | Si usan `industry_code` para filtrar, migrar a `industries[]` |
+| Baja | Deprecar campos `industry` e `industry_code` | Solo después de que TODO el sistema use `industries[]`. Los campos siguen existiendo para backward compatibility hasta completar migración |
+
+**IMPORTANTE:**
+- NO eliminar `industry` ni `industry_code` — siguen existiendo para backward compatibility
+- La migración de Companies.jsx, prospection, etc. es un proyecto aparte
+- El campo `industries[]` ya existe en el modelo de datos y soporta múltiples industrias
+
+---
+
 ## ⚪ FASE 6: Features Avanzados - Backlog (Alto costo)
 > **Objetivo:** Features que requieren integraciones externas
 
