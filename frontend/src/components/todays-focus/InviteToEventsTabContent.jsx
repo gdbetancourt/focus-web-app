@@ -153,17 +153,22 @@ export function InviteToEventsTabContent() {
     setSearchTerm("");
     
     try {
-      const [companiesRes, industriesRes] = await Promise.all([
-        api.get(`/todays-focus/events/${event.id}/company-invitations`),
-        api.get("/todays-focus/industries-for-invitations"),
-      ]);
+      const companiesRes = await api.get(`/todays-focus/events/${event.id}/company-invitations`);
       setCompanies(companiesRes.data.companies || []);
-      setIndustries(industriesRes.data.industries || []);
     } catch (error) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar empresas");
     } finally {
       setLoadingCompanies(false);
+    }
+
+    // Load industries separately so it doesn't block company loading
+    try {
+      const industriesRes = await api.get("/todays-focus/industries-for-invitations");
+      setIndustries(industriesRes.data.industries || []);
+    } catch (error) {
+      console.error("Error loading industries:", error);
+      // Non-blocking — companies will show in "Sin industria" group
     }
   };
 
