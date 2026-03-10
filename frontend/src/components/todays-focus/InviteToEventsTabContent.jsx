@@ -17,6 +17,16 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "../ui/alert-dialog";
 import { toast } from "sonner";
 import api from "../../lib/api";
 import {
@@ -49,14 +59,22 @@ export function InviteToEventsTabContent() {
   const [pendingChanges, setPendingChanges] = useState(new Set());
   const [saving, setSaving] = useState(false);
   const [togglingCompany, setTogglingCompany] = useState(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(null);
 
-  // Toggle company outbound status
-  const handleToggleOutbound = async (e, company) => {
+  // Ask for confirmation before deactivating
+  const askDeactivate = (e, company) => {
     e.stopPropagation();
+    setConfirmDeactivate(company);
+  };
+
+  // Actually deactivate after confirmation
+  const handleConfirmDeactivate = async () => {
+    if (!confirmDeactivate) return;
+    const company = confirmDeactivate;
+    setConfirmDeactivate(null);
     setTogglingCompany(company.id);
     try {
       await api.patch(`/prospection/companies/${company.id}/toggle-active`);
-      // Remove the company from the list (it's no longer outbound)
       setCompanies(prev => prev.filter(c => c.id !== company.id));
       toast.success(`${company.name} desactivada de outbound`);
     } catch (error) {
@@ -431,8 +449,8 @@ export function InviteToEventsTabContent() {
                         )}
                         <button
                           title="Desactivar de outbound"
-                          className="p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400 transition-colors shrink-0"
-                          onClick={(e) => handleToggleOutbound(e, company)}
+                          className="p-1 rounded text-green-500 hover:bg-red-500/20 hover:text-red-400 transition-colors shrink-0"
+                          onClick={(e) => askDeactivate(e, company)}
                           disabled={togglingCompany === company.id}
                         >
                           {togglingCompany === company.id ? (
@@ -478,6 +496,30 @@ export function InviteToEventsTabContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Deactivation Dialog */}
+      <AlertDialog open={!!confirmDeactivate} onOpenChange={(open) => !open && setConfirmDeactivate(null)}>
+        <AlertDialogContent className="bg-[#111] border-[#222] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desactivar empresa de outbound</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              ¿Estás seguro de que quieres desactivar <span className="text-white font-medium">{confirmDeactivate?.name}</span> de outbound?
+              La empresa dejará de aparecer en esta lista y en otras secciones de prospección.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[#333] text-white hover:bg-[#222]">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeactivate}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Desactivar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
