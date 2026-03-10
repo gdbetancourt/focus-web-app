@@ -244,38 +244,48 @@ export function InviteToEventsTabContent() {
   );
 
   // Group companies by industry for accordion view
+  // Build groups dynamically from company data, enrich with industry metadata
   const groupedByIndustry = (() => {
-    // Show all industries that have companies (don't filter by classification)
-    const allIndustryCodes = new Set(industries.map(i => i.code));
-    const groups = [];
-
+    // Lookup map: industry code → metadata from industries collection
+    const industryMeta = {};
     for (const ind of industries) {
-      const companiesInIndustry = filteredCompanies.filter(c =>
-        (c.industries || []).includes(ind.code)
-      );
-      if (companiesInIndustry.length > 0) {
-        groups.push({ ...ind, companies: companiesInIndustry });
+      industryMeta[ind.code] = ind;
+    }
+
+    // Build groups from actual company industries
+    const groupMap = {};
+    for (const company of filteredCompanies) {
+      const ci = company.industries || [];
+      if (ci.length === 0) {
+        // No industry → "Sin industria"
+        if (!groupMap["_sin_industria"]) {
+          groupMap["_sin_industria"] = {
+            code: "_sin_industria",
+            name: "Sin industria",
+            color: "#64748b",
+            classification: "outbound",
+            companies: [],
+          };
+        }
+        groupMap["_sin_industria"].companies.push(company);
+      } else {
+        for (const code of ci) {
+          if (!groupMap[code]) {
+            const meta = industryMeta[code] || {};
+            groupMap[code] = {
+              code,
+              name: meta.name || code.replace(/_/g, " "),
+              color: meta.color || "#6366f1",
+              classification: meta.classification || "outbound",
+              companies: [],
+            };
+          }
+          groupMap[code].companies.push(company);
+        }
       }
     }
 
-    // Companies with no matching industry ("Sin industria")
-    const noIndustry = filteredCompanies.filter(c => {
-      const ci = c.industries || [];
-      return ci.length === 0 || !ci.some(code => allIndustryCodes.has(code));
-    });
-    if (noIndustry.length > 0) {
-      groups.push({
-        code: "_sin_industria",
-        name: "Sin industria",
-        color: "#64748b",
-        classification: "outbound",
-        companies: noIndustry,
-      });
-    }
-
-    // Sort groups by name
-    groups.sort((a, b) => a.name.localeCompare(b.name));
-    return groups;
+    return Object.values(groupMap).sort((a, b) => a.name.localeCompare(b.name));
   })();
 
   // Calculate if company is checked (considering pending changes)
