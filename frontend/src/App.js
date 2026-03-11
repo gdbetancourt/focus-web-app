@@ -29,6 +29,7 @@ import {
   PreProjectsPage,
   TasksOutsideSystemPage,
   PlanMaestroPage,
+  LinkedInJournalPage,
   YouTubeIdeasPage,
   CurrentCasesPage,
   MergeDuplicatesFocusPage,
@@ -317,7 +318,8 @@ function AppRoutes() {
             <Route path="focus/analytics" element={<AnalyticsPage />} />
             <Route path="focus/tasks-outside-system" element={<TasksOutsideSystemPage />} />
             <Route path="focus/plan-maestro" element={<PlanMaestroPage />} />
-            
+            <Route path="focus/linkedin-journal" element={<LinkedInJournalPage />} />
+
             {/* Asset Pages */}
             <Route path="focus/assets/contacts" element={<ContactsAssetPage />} />
             <Route path="focus/assets/companies" element={<CompaniesAssetPage />} />

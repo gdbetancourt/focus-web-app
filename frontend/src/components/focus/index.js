@@ -33,6 +33,7 @@ export {
   MergeDuplicatesFocusPage,
   AnalyticsPage,
   PlanMaestroPage,
+  LinkedInJournalPage,
 } from './pages';
 
 // Asset Pages

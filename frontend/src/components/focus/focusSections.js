@@ -27,6 +27,7 @@ import {
   Briefcase,
   GitMerge,
   ClipboardList,
+  CalendarClock,
 } from "lucide-react";
 
 // LinkedIn profiles for prospecting (fixed)
@@ -576,6 +577,38 @@ export const FOCUS_SECTIONS = [
       green: "All tasks scheduled for today have been completed",
     },
     sourceComponent: "TodoTabContent",
+  },
+  {
+    id: "linkedin-journal",
+    label: "LinkedIn Event Journal",
+    icon: CalendarClock,
+    path: "/focus/linkedin-journal",
+    trafficType: "weekly",
+    subheadline: "Checklist para publicar posts en LinkedIn vinculados a eventos Stage 4: inmediato + aniversarios anuales.",
+    steps: [
+      {
+        title: "Registra event_date en los casos Stage 4.",
+        details: "El sistema genera automáticamente un post programado para event_date + 1 día."
+      },
+      {
+        title: "Redacta y revisa el contenido del post.",
+        details: "Edita el borrador antes de la fecha programada de publicación."
+      },
+      {
+        title: "Publica manualmente en LinkedIn y marca como publicado.",
+        details: "Copia el texto, publícalo en LinkedIn, y presiona 'Marcar como publicado' en FOCUS1."
+      },
+      {
+        title: "Monitorea aniversarios.",
+        details: "Al marcar como publicado, el sistema crea automáticamente el post del siguiente aniversario."
+      },
+    ],
+    trafficRules: {
+      red: "Posts pendientes vencidos por más de 7 días",
+      yellow: "Posts pendientes próximos a su fecha programada",
+      green: "Todos los posts publicados o programados a futuro",
+    },
+    sourceComponent: "LinkedInJournalPage",
   },
 ];
 
