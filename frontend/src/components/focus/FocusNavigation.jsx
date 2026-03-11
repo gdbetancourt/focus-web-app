@@ -11,7 +11,7 @@
  */
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { ChevronDown, ChevronRight, FolderArchive, Construction, Package } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderArchive, Construction, Package, BookOpen } from "lucide-react";
 import { cn } from "../../lib/utils";
 import FOCUS_SECTIONS from "./focusSections";
 import ASSETS_SECTIONS from "./assetsSections";
@@ -102,6 +102,7 @@ function LegacySectionGroup({ group, items, onNavigate }) {
 export default function FocusNavigation({ trafficLightStatus = {}, onNavigate }) {
   const [legacyOpen, setLegacyOpen] = useState(false);
   const [assetsOpen, setAssetsOpen] = useState(false);
+  const [librosOpen, setLibrosOpen] = useState(true);
 
   return (
     <nav className="space-y-1">
@@ -134,6 +135,41 @@ export default function FocusNavigation({ trafficLightStatus = {}, onNavigate })
           </NavLink>
         );
       })}
+
+      {/* Separator */}
+      <div className="my-4 border-t border-slate-800" />
+
+      {/* Libros - Collapsible */}
+      <div className="space-y-1">
+        <button
+          onClick={() => setLibrosOpen(!librosOpen)}
+          className="w-full flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          {librosOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          <BookOpen className="w-4 h-4" />
+          <span className="text-sm font-medium">Libros</span>
+        </button>
+
+        {librosOpen && (
+          <div className="ml-2 space-y-0.5 pb-2">
+            <NavLink
+              to="/focus/libro/rockstars-storytelling"
+              onClick={() => onNavigate?.("rockstars-storytelling")}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-all",
+                  isActive
+                    ? "bg-[#ff3300]/10 text-[#ff3300]"
+                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/30"
+                )
+              }
+            >
+              <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">Rockstars del Storytelling</span>
+            </NavLink>
+          </div>
+        )}
+      </div>
 
       {/* Separator */}
       <div className="my-4 border-t border-slate-800" />

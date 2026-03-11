@@ -24,3 +24,4 @@ export { default as AnalyticsPage } from './AnalyticsPage';
 export { default as TasksOutsideSystemPage } from './TasksOutsideSystemPage';
 export { default as PlanMaestroPage } from './PlanMaestroPage';
 export { default as LinkedInJournalPage } from './LinkedInJournalPage';
+export { default as LibroRockstarsPage } from './LibroRockstarsPage';

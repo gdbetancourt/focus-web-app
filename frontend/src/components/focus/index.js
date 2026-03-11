@@ -34,6 +34,7 @@ export {
   AnalyticsPage,
   PlanMaestroPage,
   LinkedInJournalPage,
+  LibroRockstarsPage,
 } from './pages';
 
 // Asset Pages
