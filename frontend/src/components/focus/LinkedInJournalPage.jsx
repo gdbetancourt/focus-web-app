@@ -315,8 +315,11 @@ function PostRow({ post, onEdit, onDelete, onMarkPublished }) {
             <p className="text-sm text-zinc-300 truncate" title={post.content}>
               {truncate(post.content, 80)}
             </p>
-            <p className="text-xs text-zinc-600 mt-1" title={post.case_id}>
-              Caso: {post.case_id?.slice(0, 8)}...
+            <p className="text-xs text-zinc-500 mt-1">
+              Caso: {post.case_name ?? post.case_id?.slice(0, 8)}
+              {post.case_event_date && (
+                <span className="ml-2 text-zinc-600">Evento: {post.case_event_date}</span>
+              )}
             </p>
             {isFailed && post.error_message && (
               <p className="text-xs text-red-400 mt-1" title={post.error_message}>
