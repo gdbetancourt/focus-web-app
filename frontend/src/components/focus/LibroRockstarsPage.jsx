@@ -92,6 +92,7 @@ export default function LibroRockstarsPage() {
   const [loading, setLoading] = useState(true);
   const [wordGoal, setWordGoal] = useState(50000);
   const [summary, setSummary] = useState([]);
+  const [visitedWords, setVisitedWords] = useState({});
   const saveTimer = useRef(null);
 
   // Load goal + summary on mount
@@ -115,9 +116,13 @@ export default function LibroRockstarsPage() {
     setLoading(true);
     try {
       const res = await api.get(`/libro/capitulos/${pi}/${ci}`);
-      setCapData(res.data || { ...EMPTY_CAP });
+      const data = res.data || { ...EMPTY_CAP };
+      setCapData(data);
+      const wc = countWords(data.redaccion_humanizada || data.primera_version || "");
+      setVisitedWords((prev) => ({ ...prev, [`${pi}-${ci}`]: wc }));
     } catch {
       setCapData({ ...EMPTY_CAP });
+      setVisitedWords((prev) => ({ ...prev, [`${pi}-${ci}`]: 0 }));
     } finally {
       setLoading(false);
     }
@@ -152,13 +157,32 @@ export default function LibroRockstarsPage() {
     const next = { ...capData, [key]: value };
     setCapData(next);
     saveChapter(next);
+    if (key === "redaccion_humanizada" || key === "primera_version") {
+      const wc = countWords(next.redaccion_humanizada || next.primera_version || "");
+      setVisitedWords((prev) => ({ ...prev, [`${activePart}-${activeChapter}`]: wc }));
+    }
   };
 
-  // Compute totals from summary
-  const totalWords = summary.reduce((s, r) => {
-    const best = (r.rh_len || 0) > 0 ? r.rh_len : (r.pv_len || 0);
-    return s + Math.round(best / 5);
-  }, 0);
+  // Compute totals — real count for visited chapters, estimate for the rest
+  let totalWords = 0;
+  let hasEstimates = false;
+  PARTS.forEach((p) => {
+    p.chapters.forEach((ch) => {
+      const key = `${p.index}-${ch.index}`;
+      if (key in visitedWords) {
+        totalWords += visitedWords[key];
+      } else {
+        const row = summary.find((r) => r.parte_index === p.index && r.capitulo_index === ch.index);
+        if (row) {
+          const best = (row.rh_len || 0) > 0 ? row.rh_len : (row.pv_len || 0);
+          if (best > 0) {
+            totalWords += Math.round(best / 5);
+            hasEstimates = true;
+          }
+        }
+      }
+    });
+  });
   const totalChapters = PARTS.reduce((s, p) => s + p.chapters.length, 0);
   const doneChapters = summary.filter((r) => r.status === "Terminado").length;
 
@@ -190,7 +214,7 @@ export default function LibroRockstarsPage() {
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Rockstars del Storytelling</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>
-              {doneChapters}/{totalChapters} terminados — {totalWords.toLocaleString()} / {wordGoal.toLocaleString()} palabras
+              {doneChapters}/{totalChapters} terminados — {hasEstimates ? "~" : ""}{totalWords.toLocaleString()} / {wordGoal.toLocaleString()} palabras
             </div>
           </div>
         </div>
