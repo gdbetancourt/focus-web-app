@@ -101,6 +101,10 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
   // Step 5: Import result
   const [importResult, setImportResult] = useState(null);
 
+  // CSV import progress (Fix 9)
+  const [csvImportProgress, setCsvImportProgress] = useState(null);
+  const [isPollingCsvImport, setIsPollingCsvImport] = useState(false);
+
   const resetWizard = () => {
     setStep(1);
     setImportMode('csv');
@@ -122,6 +126,8 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
     });
     setValidationResult(null);
     setImportResult(null);
+    setCsvImportProgress(null);
+    setIsPollingCsvImport(false);
     // Reset calendar invite based on event date
     if (eventId && eventDate) {
       setSendCalendarInvite(new Date(eventDate) >= new Date(new Date().toDateString()));
@@ -187,6 +193,45 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
       if (interval) clearInterval(interval);
     };
   }, [isPolling, pollProgress]);
+
+  // CSV import progress polling (Fix 9)
+  useEffect(() => {
+    let interval;
+    if (isPollingCsvImport && uploadResult?.batch_id) {
+      interval = setInterval(async () => {
+        try {
+          const res = await api.get(`/contacts/imports/${uploadResult.batch_id}/progress`);
+          const progress = res.data;
+          setCsvImportProgress(progress);
+
+          if (progress.status === "complete") {
+            setIsPollingCsvImport(false);
+            setLoading(false);
+            setImportResult(progress);
+            setStep(5);
+            const calendarMsg = progress.calendar_events_created
+              ? ` (${progress.calendar_events_created} invitaciones enviadas)`
+              : '';
+            const msg = eventId
+              ? `Importado! Creados: ${progress.created}, Actualizados: ${progress.updated}${calendarMsg}`
+              : `Import completed! Created: ${progress.created}, Updated: ${progress.updated}`;
+            toast.success(msg);
+            if (progress.calendar_error) {
+              toast.warning(`Calendario: ${progress.calendar_error}`);
+            }
+            if (onImportComplete) onImportComplete();
+          } else if (progress.status === "error") {
+            setIsPollingCsvImport(false);
+            setLoading(false);
+            toast.error(progress.phase || "Error en importación");
+          }
+        } catch (err) {
+          console.error("Error polling CSV import progress:", err);
+        }
+      }, 1500);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [isPollingCsvImport, uploadResult?.batch_id, eventId, onImportComplete]);
 
   const handleHubspotImport = async () => {
     if (!hubspotUrl || !eventId) return;
@@ -272,21 +317,21 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
 
   const handleSaveMapping = async () => {
     if (!uploadResult?.batch_id) return;
-    
+
     setLoading(true);
     try {
       await api.post(`/contacts/imports/${uploadResult.batch_id}/map`, {
         mappings: mappings.filter(m => m.focus_field !== "ignore"),
         config
       });
-      
       setStep(3);
-      // Auto-run validation
-      await handleValidate();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Error saving mapping");
       setLoading(false);
+      return; // Don't proceed to validation if mapping failed (Fix 10)
     }
+    // Only validate if mapping succeeded
+    await handleValidate();
   };
 
   // Step 3-4: Validate
@@ -305,18 +350,18 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
     }
   };
 
-  // Step 5: Run import
+  // Step 5: Run import (Fix 9 - now uses background processing + polling)
   const handleRunImport = async () => {
     if (!uploadResult?.batch_id) return;
-    
+
     setLoading(true);
+    setCsvImportProgress({ status: "starting", percent: 0, phase: "Iniciando importación..." });
+
     try {
-      // Pass eventId and calendar invite options if importing for an event
       let params = eventId ? `?event_id=${eventId}` : '';
       if (eventId) {
         params += `&send_calendar_invite=${sendCalendarInvite}`;
         if (sendCalendarInvite) {
-          // Pass calendar description and location as URL encoded params
           if (calendarDescription) {
             params += `&calendar_description=${encodeURIComponent(calendarDescription)}`;
           }
@@ -325,25 +370,14 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
           }
         }
       }
-      const response = await api.post(`/contacts/imports/${uploadResult.batch_id}/run${params}`);
-      setImportResult(response.data);
-      setStep(5);
-      
-      const calendarMsg = sendCalendarInvite && response.data.calendar_events_created 
-        ? ` (${response.data.calendar_events_created} invitaciones enviadas)`
-        : '';
-      const msg = eventId 
-        ? `Importado para evento! Creados: ${response.data.created}, Actualizados: ${response.data.updated}${calendarMsg}`
-        : `Import completed! Created: ${response.data.created}, Updated: ${response.data.updated}`;
-      toast.success(msg);
-      
-      if (onImportComplete) {
-        onImportComplete();
-      }
+      await api.post(`/contacts/imports/${uploadResult.batch_id}/run${params}`);
+      // Start polling for progress — don't wait for completion
+      setIsPollingCsvImport(true);
+      toast.info("Importación iniciada...");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Error running import");
-    } finally {
       setLoading(false);
+      setCsvImportProgress(null);
+      toast.error(error.response?.data?.detail || "Error running import");
     }
   };
 
@@ -949,6 +983,36 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
             </div>
           )}
 
+          {/* CSV Import Progress Bar (Fix 9) */}
+          {csvImportProgress && csvImportProgress.status !== "complete" && csvImportProgress.status !== "not_found" && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-5 h-5 animate-spin text-[#ff3300]" />
+                <span className="text-sm text-slate-300">{csvImportProgress.phase || "Procesando..."}</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-3">
+                <div
+                  className="bg-[#ff3300] h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${csvImportProgress.percent || 0}%` }}
+                />
+              </div>
+              <div className="flex gap-6 text-xs text-slate-400">
+                <span>Progreso: {csvImportProgress.percent || 0}%</span>
+                <span className="text-emerald-400">Creados: {csvImportProgress.created || 0}</span>
+                <span className="text-blue-400">Actualizados: {csvImportProgress.updated || 0}</span>
+                <span className="text-slate-400">Omitidos: {csvImportProgress.skipped || 0}</span>
+                {(csvImportProgress.errors || 0) > 0 && (
+                  <span className="text-red-400">Errores: {csvImportProgress.errors}</span>
+                )}
+              </div>
+              {csvImportProgress.total > 0 && (
+                <p className="text-xs text-slate-500">
+                  {csvImportProgress.processed || 0} de {csvImportProgress.total} filas procesadas
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Step 5: Complete */}
           {step === 5 && (importResult || hubspotResult) && (
             <div className="space-y-6 text-center py-8">
@@ -1064,13 +1128,13 @@ export default function ImportWizard({ open, onOpenChange, onImportComplete, eve
           )}
           
           {step === 4 && (
-            <Button 
-              onClick={handleRunImport} 
-              disabled={loading || (validationResult?.errors > 0 && config.strict_mode) || !validationResult?.can_proceed}
+            <Button
+              onClick={handleRunImport}
+              disabled={loading || isPollingCsvImport || (validationResult?.errors > 0 && config.strict_mode) || !validationResult?.can_proceed}
               className="btn-accent"
             >
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-              Run Import
+              {loading || isPollingCsvImport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+              {isPollingCsvImport ? "Importando..." : "Run Import"}
             </Button>
           )}
           

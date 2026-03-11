@@ -2,7 +2,7 @@
 Contact Import Router - CSV Import functionality for FOCUS contacts
 Supports upload, mapping, validation, duplicate detection, and batch import
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
@@ -11,12 +11,16 @@ import csv
 import io
 import re
 import logging
+import asyncio
 
 from database import db
 from routers.auth import get_current_user
 from routers.contacts import normalize_phone_to_e164, normalize_email_entry, CONTACT_TYPES
 
 logger = logging.getLogger(__name__)
+
+# In-memory progress tracking for CSV imports (Fix 3)
+csv_import_progress: Dict[str, Dict[str, Any]] = {}
 
 router = APIRouter(prefix="/contacts/imports", tags=["contact-imports"])
 
@@ -663,6 +667,7 @@ def process_row(row_data: dict, mapping_dict: dict, config: dict) -> dict:
 @router.post("/{batch_id}/run")
 async def run_import(
     batch_id: str,
+    background_tasks: BackgroundTasks,
     event_id: str = None,
     send_calendar_invite: bool = True,
     calendar_description: str = None,
@@ -670,333 +675,506 @@ async def run_import(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Step 5: Execute the import
-    Creates/updates contacts based on validation results
-    If event_id is provided, also adds webinar_history entry
-    If send_calendar_invite is True, creates Google Calendar events for attendees
-    
-    Args:
-        calendar_description: Custom description for calendar invite (overrides event description)
-        calendar_location: Location to show in calendar invite
+    Step 5: Launch the import in background (Fix 3)
+    Validates preconditions, then starts a background task.
+    Returns immediately with status: "started".
+    Poll GET /{batch_id}/progress for real-time updates.
     """
     batch = await db.import_batches.find_one({"batch_id": batch_id})
     if not batch:
         raise HTTPException(status_code=404, detail="Import batch not found")
-    
+
     if batch.get("status") not in ["validated", "mapped"]:
         raise HTTPException(status_code=400, detail="Please validate the import first")
-    
+
     validation_results = batch.get("validation_results", [])
     if not validation_results:
         raise HTTPException(status_code=400, detail="No validation results found. Please run validation first.")
-    
+
     # If importing for an event with calendar invites, verify calendar is connected FIRST
     if event_id and send_calendar_invite:
         from routers.events_v2 import get_youtube_credentials
         creds = await get_youtube_credentials()
         if not creds:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail="Google Calendar no está conectado. Ve a Configuración → Integraciones para conectarlo antes de importar registrantes."
             )
-    
-    config = batch.get("config", {})
-    
-    # If importing for an event, get event details
-    event = None
-    if event_id:
-        event = await db.webinar_events_v2.find_one({"id": event_id}, {"_id": 0})
-    
+
     # Update status to running
     await db.import_batches.update_one(
         {"batch_id": batch_id},
         {"$set": {"status": "running", "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
-    
-    created = 0
-    updated = 0
-    skipped = 0
-    errors = 0
-    error_details = []
-    new_emails_for_calendar = []  # Track new emails for calendar invites
-    
-    now = datetime.now(timezone.utc).isoformat()
-    
-    # Prepare webinar_history entry if importing for event
-    webinar_entry = None
-    if event:
-        webinar_entry = {
-            "event_id": event_id,
-            "event_name": event.get("name", ""),
-            "status": "registered",
-            "registered_at": now,
-            "source": "csv_import"
-        }
-    
-    for result in validation_results:
-        action = result.get("action")
-        processed_data = result.get("processed_data", {})
-        matched_contact = result.get("matched_contact")
-        row_index = result.get("row_index")
-        
-        try:
-            if action == "skip":
-                skipped += 1
-                continue
-            
-            # Auto-classify buyer persona based on job title keywords if not provided
-            # MIGRATION: Now uses centralized persona_classifier_service
-            job_title = processed_data.get("job_title", "")
-            if job_title and not processed_data.get("buyer_persona"):
-                from services.persona_classifier_service import classify_job_title_with_name, normalize_job_title
-                bp_id, bp_name = await classify_job_title_with_name(db, job_title, use_cache=True)
-                processed_data["buyer_persona"] = bp_name
-                processed_data["job_title_normalized"] = normalize_job_title(job_title)
-            
-            if action == "create":
-                # Create new contact
-                # For phone field, prefer raw_input over e164 to preserve original format
-                phone_list = processed_data.get("phones", [])
-                primary_phone = ""
-                if phone_list:
-                    first_phone = phone_list[0]
-                    primary_phone = first_phone.get("raw_input") or first_phone.get("e164") or ""
-                
-                new_contact = {
-                    "id": str(uuid.uuid4()),
-                    "salutation": processed_data.get("salutation", ""),
-                    "first_name": processed_data.get("first_name", ""),
-                    "last_name": processed_data.get("last_name", ""),
-                    "name": processed_data.get("name", ""),
-                    "email": processed_data.get("emails", [{}])[0].get("email", "") if processed_data.get("emails") else "",
-                    "emails": processed_data.get("emails", []),
-                    "phone": primary_phone,
-                    "phones": processed_data.get("phones", []),
-                    "linkedin_url": processed_data.get("linkedin_url", ""),
-                    "company": processed_data.get("company", ""),
-                    "job_title": processed_data.get("job_title", ""),
-                    "buyer_persona": processed_data.get("buyer_persona") or "mateo",
-                    "roles": processed_data.get("roles", []),
-                    "contact_types": processed_data.get("roles", []),
-                    "specialty": processed_data.get("specialty", ""),
-                    "location": processed_data.get("location", ""),
-                    "country": processed_data.get("country", ""),
-                    "stage": processed_data.get("stage", 2 if event else 1),  # Stage 2 if for event
-                    "notes": processed_data.get("notes", ""),
-                    "source": "event_import" if event else "import",
-                    "source_details": {"batch_id": batch_id, "row_index": row_index, "event_id": event_id} if event else {"batch_id": batch_id, "row_index": row_index},
-                    "status": "new",
-                    "created_at": now,
-                    "updated_at": now,
-                    "is_merged": False,
-                    "merged_from_contact_ids": [],
-                    "webinar_history": [webinar_entry] if webinar_entry else []
-                }
-                
-                await db.unified_contacts.insert_one(new_contact)
-                created += 1
-                # Track email for calendar invite
-                email = processed_data.get("emails", [{}])[0].get("email", "") if processed_data.get("emails") else ""
-                if email and event:
-                    new_emails_for_calendar.append(email)
-            
-            elif action == "update" and matched_contact:
-                # Update existing contact
-                contact_id = matched_contact.get("id")
-                existing = await db.unified_contacts.find_one({"id": contact_id})
-                
-                if existing:
-                    update_data = {"updated_at": now}
-                    overwrite_empty = config.get("overwrite_empty", False)
-                    
-                    # Update simple fields (don't overwrite with empty unless configured)
-                    for field in ["salutation", "first_name", "last_name", "name", "linkedin_url", 
-                                  "company", "job_title", "buyer_persona", "specialty", "notes",
-                                  "location", "country"]:
-                        new_value = processed_data.get(field)
-                        if new_value or overwrite_empty:
-                            update_data[field] = new_value or ""
-                    
-                    # Auto-classify buyer persona if existing contact doesn't have one
-                    # MIGRATION: Now uses centralized persona_classifier_service
-                    # Respects buyer_persona_locked flag
-                    existing_bp = existing.get("buyer_persona")
-                    is_locked = existing.get("buyer_persona_locked", False)
-                    
-                    if not is_locked and (not existing_bp or existing_bp == "mateo"):
-                        new_job_title = processed_data.get("job_title") or existing.get("job_title", "")
-                        if new_job_title:
-                            from services.persona_classifier_service import classify_job_title_with_name, normalize_job_title
-                            bp_id, auto_bp = await classify_job_title_with_name(db, new_job_title, use_cache=True)
-                            if auto_bp != "Mateo" or not existing_bp:
-                                update_data["buyer_persona"] = auto_bp
-                                update_data["job_title_normalized"] = normalize_job_title(new_job_title)
-                    
-                    # Update stage - special logic for event imports
-                    current_stage = existing.get("stage", 1)
-                    if event:
-                        # For event imports: set to Stage 2 only if current stage is 1 or 2
-                        # Keep stages 3, 4, 5 intact
-                        if current_stage in [1, 2]:
-                            update_data["stage"] = 2
-                        # else: don't modify stage (keep 3, 4, or 5)
-                    elif processed_data.get("stage"):
-                        # For regular imports: use the stage from CSV if provided
-                        update_data["stage"] = processed_data["stage"]
-                    
-                    # Merge emails (add new, don't duplicate)
-                    existing_emails = {e.get("email", "").lower() for e in existing.get("emails", [])}
-                    new_emails = existing.get("emails", [])[:]
-                    for email_entry in processed_data.get("emails", []):
-                        if email_entry.get("email", "").lower() not in existing_emails:
-                            new_emails.append(email_entry)
-                    update_data["emails"] = new_emails
-                    update_data["email"] = new_emails[0].get("email", "") if new_emails else ""
-                    
-                    # Merge phones - use raw_input as the key for deduplication
-                    existing_phones = set()
-                    for p in existing.get("phones", []):
-                        phone_key = p.get("raw_input", "") or p.get("e164", "")
-                        if phone_key:
-                            existing_phones.add(phone_key)
-                    
-                    new_phones = existing.get("phones", [])[:]
-                    for phone_entry in processed_data.get("phones", []):
-                        phone_key = phone_entry.get("raw_input", "") or phone_entry.get("e164", "")
-                        if phone_key and phone_key not in existing_phones:
-                            new_phones.append(phone_entry)
-                            existing_phones.add(phone_key)
-                    
-                    update_data["phones"] = new_phones
-                    # Use raw_input for the legacy phone field
-                    if new_phones:
-                        first_phone = new_phones[0]
-                        update_data["phone"] = first_phone.get("raw_input") or first_phone.get("e164") or ""
-                    else:
-                        update_data["phone"] = ""
-                    
-                    # Merge roles
-                    existing_roles = set(existing.get("roles", []) + existing.get("contact_types", []))
-                    new_roles = list(existing_roles.union(set(processed_data.get("roles", []))))
-                    update_data["roles"] = new_roles
-                    update_data["contact_types"] = new_roles
-                    
-                    # Add webinar_history if importing for an event
-                    if webinar_entry:
-                        existing_webinar_history = existing.get("webinar_history", [])
-                        # Check if already registered for this event
-                        already_registered = any(
-                            w.get("event_id") == event_id for w in existing_webinar_history
-                        )
-                        if not already_registered:
-                            update_data["webinar_history"] = existing_webinar_history + [webinar_entry]
-                            # Track email for calendar invite (only new registrations)
-                            contact_email = existing.get("email", "")
-                            if contact_email:
-                                new_emails_for_calendar.append(contact_email)
-                    
-                    await db.unified_contacts.update_one(
-                        {"id": contact_id},
-                        {"$set": update_data}
-                    )
-                    updated += 1
-                else:
-                    errors += 1
-                    error_details.append({"row_index": row_index, "error": "Matched contact not found"})
-        
-        except Exception as e:
-            errors += 1
-            error_details.append({"row_index": row_index, "error": str(e)})
-            logger.error(f"Import error at row {row_index}: {e}")
-    
-    # Create Google Calendar events if requested and importing for an event
-    # Note: Calendar credentials are already verified at the start of this function
-    calendar_events_created = 0
-    if event and send_calendar_invite and new_emails_for_calendar:
-        try:
-            from routers.events_v2 import create_calendar_events_for_webinar
-            import os
-            
-            frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://persona-assets.preview.emergentagent.com')
-            watching_room_url = f"{frontend_url}/lms/webinar/{event_id}"
-            
-            # Use custom description/location if provided, otherwise use event defaults
-            final_description = calendar_description if calendar_description is not None else event.get("description", "")
-            final_location = calendar_location if calendar_location is not None else ""
-            
-            calendar_event_ids = await create_calendar_events_for_webinar(
-                event_id=event_id,
-                event_name=event.get("name", ""),
-                event_description=final_description,
-                event_date=event.get("webinar_date", ""),
-                event_time=event.get("webinar_time", "10:00"),
-                watching_room_url=watching_room_url,
-                attendee_emails=new_emails_for_calendar,
-                location=final_location
-            )
-            calendar_events_created = len(calendar_event_ids)
-            
-            # Save calendar event IDs to webinar
-            if calendar_event_ids:
-                await db.webinar_events_v2.update_one(
-                    {"id": event_id},
-                    {
-                        "$addToSet": {"google_calendar_event_ids": {"$each": calendar_event_ids}},
-                        "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Error creating calendar events: {e}")
-            raise HTTPException(status_code=500, detail=f"Error al crear invitaciones de calendario: {str(e)}")
-    
-    # Schedule email reminders (E6-E10) for the imported registrants
-    email_scheduled = {"E6": 0, "E7": 0, "E8": 0, "E9": 0, "E10": 0}
-    try:
-        from services.email_scheduler import email_scheduler
-        
-        # Schedule E6 (pre-registration confirmation) for new imports
-        e6_count = await schedule_e6_for_batch(event_id, created + updated)
-        email_scheduled["E6"] = e6_count
-        
-        # Schedule E7-E10 (webinar reminders) for the event
-        reminder_counts = await email_scheduler.schedule_webinar_reminders(event_id)
-        email_scheduled.update(reminder_counts)
-        
-        logger.info(f"Scheduled emails for event {event_id}: {email_scheduled}")
-    except Exception as e:
-        logger.error(f"Error scheduling email reminders: {e}")
-        # Don't fail the import if email scheduling fails
-    
-    # Update batch with final results
-    await db.import_batches.update_one(
-        {"batch_id": batch_id},
-        {"$set": {
-            "status": "completed",
-            "results": {
-                "created": created,
-                "updated": updated,
-                "skipped": skipped,
-                "errors": errors,
-                "warnings": batch.get("validation_summary", {}).get("warnings", 0),
-                "calendar_events_created": calendar_events_created
-            },
-            "error_details": error_details[:100],  # Store first 100 errors
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-    
-    return {
-        "batch_id": batch_id,
-        "status": "completed",
-        "created": created,
-        "updated": updated,
-        "skipped": skipped,
-        "errors": errors,
-        "error_details": error_details[:10],  # Return first 10 errors
-        "calendar_events_created": calendar_events_created,
-        "emails_scheduled": email_scheduled
+
+    # Initialize progress
+    csv_import_progress[batch_id] = {
+        "status": "running",
+        "phase": "Iniciando importación...",
+        "total": len(validation_results),
+        "processed": 0,
+        "created": 0,
+        "updated": 0,
+        "skipped": 0,
+        "errors": 0,
+        "percent": 0
     }
+
+    # Launch background task
+    background_tasks.add_task(
+        run_import_background,
+        batch_id=batch_id,
+        batch=batch,
+        validation_results=validation_results,
+        event_id=event_id,
+        send_calendar_invite=send_calendar_invite,
+        calendar_description=calendar_description,
+        calendar_location=calendar_location,
+    )
+
+    return {"status": "started", "batch_id": batch_id, "total": len(validation_results)}
+
+
+@router.get("/{batch_id}/progress")
+async def get_import_progress(
+    batch_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Poll endpoint for real-time import progress (Fix 3)."""
+    if batch_id in csv_import_progress:
+        return csv_import_progress[batch_id]
+
+    # Fallback: check batch in DB (import may have finished and been cleaned from memory)
+    batch = await db.import_batches.find_one(
+        {"batch_id": batch_id},
+        {"status": 1, "results": 1, "error_details": 1}
+    )
+    if batch and batch.get("status") == "completed":
+        results = batch.get("results", {})
+        return {
+            "status": "complete",
+            "percent": 100,
+            "phase": "Importación completada",
+            "total": results.get("created", 0) + results.get("updated", 0) + results.get("skipped", 0) + results.get("errors", 0),
+            "processed": results.get("created", 0) + results.get("updated", 0) + results.get("skipped", 0) + results.get("errors", 0),
+            **results,
+            "error_details": batch.get("error_details", [])[:10]
+        }
+    if batch and batch.get("status") == "running":
+        return {"status": "running", "percent": 0, "phase": "Procesando..."}
+    return {"status": "not_found", "percent": 0}
+
+
+async def run_import_background(
+    batch_id: str,
+    batch: dict,
+    validation_results: list,
+    event_id: str = None,
+    send_calendar_invite: bool = True,
+    calendar_description: str = None,
+    calendar_location: str = None,
+):
+    """Background worker for CSV import (Fix 3). Updates csv_import_progress in real-time."""
+    try:
+        config = batch.get("config", {})
+        total = len(validation_results)
+
+        # If importing for an event, get event details
+        event = None
+        if event_id:
+            event = await db.webinar_events_v2.find_one({"id": event_id}, {"_id": 0})
+
+        created = 0
+        updated = 0
+        skipped = 0
+        errors = 0
+        error_details = []
+        new_emails_for_calendar = []
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        # Prepare webinar_history entry if importing for event
+        webinar_entry = None
+        if event:
+            webinar_entry = {
+                "event_id": event_id,
+                "event_name": event.get("name", ""),
+                "status": "registered",
+                "registered_at": now,
+                "source": "csv_import"
+            }
+
+        # --- Main import loop ---
+        csv_import_progress[batch_id]["phase"] = "Importando contactos..."
+
+        for idx, result in enumerate(validation_results):
+            action = result.get("action")
+            processed_data = result.get("processed_data", {})
+            matched_contact = result.get("matched_contact")
+            row_index = result.get("row_index")
+
+            try:
+                if action == "skip":
+                    skipped += 1
+                    # Update progress every row
+                    processed_count = created + updated + skipped + errors
+                    csv_import_progress[batch_id].update({
+                        "processed": processed_count,
+                        "created": created,
+                        "updated": updated,
+                        "skipped": skipped,
+                        "errors": errors,
+                        "percent": int(processed_count / total * 100) if total else 100
+                    })
+                    continue
+
+                # Auto-classify buyer persona
+                job_title = processed_data.get("job_title", "")
+                if job_title and not processed_data.get("buyer_persona"):
+                    from services.persona_classifier_service import classify_job_title_with_name, normalize_job_title
+                    bp_id, bp_name = await classify_job_title_with_name(db, job_title, use_cache=True)
+                    processed_data["buyer_persona"] = bp_name
+                    processed_data["job_title_normalized"] = normalize_job_title(job_title)
+
+                if action == "create":
+                    phone_list = processed_data.get("phones", [])
+                    primary_phone = ""
+                    if phone_list:
+                        first_phone = phone_list[0]
+                        primary_phone = first_phone.get("raw_input") or first_phone.get("e164") or ""
+
+                    new_contact = {
+                        "id": str(uuid.uuid4()),
+                        "salutation": processed_data.get("salutation", ""),
+                        "first_name": processed_data.get("first_name", ""),
+                        "last_name": processed_data.get("last_name", ""),
+                        "name": processed_data.get("name", ""),
+                        "email": processed_data.get("emails", [{}])[0].get("email", "") if processed_data.get("emails") else "",
+                        "emails": processed_data.get("emails", []),
+                        "phone": primary_phone,
+                        "phones": processed_data.get("phones", []),
+                        "linkedin_url": processed_data.get("linkedin_url", ""),
+                        "company": processed_data.get("company", ""),
+                        "job_title": processed_data.get("job_title", ""),
+                        "buyer_persona": processed_data.get("buyer_persona") or "mateo",
+                        "roles": processed_data.get("roles", []),
+                        "contact_types": processed_data.get("roles", []),
+                        "specialty": processed_data.get("specialty", ""),
+                        "location": processed_data.get("location", ""),
+                        "country": processed_data.get("country", ""),
+                        "stage": processed_data.get("stage", 2 if event else 1),
+                        "notes": processed_data.get("notes", ""),
+                        "source": "event_import" if event else "import",
+                        "source_details": {"batch_id": batch_id, "row_index": row_index, "event_id": event_id} if event else {"batch_id": batch_id, "row_index": row_index},
+                        "status": "new",
+                        "created_at": now,
+                        "updated_at": now,
+                        "is_merged": False,
+                        "merged_from_contact_ids": [],
+                        "webinar_history": [webinar_entry] if webinar_entry else []
+                    }
+
+                    await db.unified_contacts.insert_one(new_contact)
+                    created += 1
+                    email = processed_data.get("emails", [{}])[0].get("email", "") if processed_data.get("emails") else ""
+                    if email and event:
+                        new_emails_for_calendar.append(email)
+
+                elif action == "update" and matched_contact:
+                    contact_id = matched_contact.get("id")
+                    existing = await db.unified_contacts.find_one({"id": contact_id})
+
+                    if existing:
+                        update_data = {"updated_at": now}
+                        overwrite_empty = config.get("overwrite_empty", False)
+
+                        for field in ["salutation", "first_name", "last_name", "name", "linkedin_url",
+                                      "company", "job_title", "buyer_persona", "specialty", "notes",
+                                      "location", "country"]:
+                            new_value = processed_data.get(field)
+                            if new_value or overwrite_empty:
+                                update_data[field] = new_value or ""
+
+                        existing_bp = existing.get("buyer_persona")
+                        is_locked = existing.get("buyer_persona_locked", False)
+
+                        if not is_locked and (not existing_bp or existing_bp == "mateo"):
+                            new_job_title = processed_data.get("job_title") or existing.get("job_title", "")
+                            if new_job_title:
+                                from services.persona_classifier_service import classify_job_title_with_name, normalize_job_title
+                                bp_id, auto_bp = await classify_job_title_with_name(db, new_job_title, use_cache=True)
+                                if auto_bp != "Mateo" or not existing_bp:
+                                    update_data["buyer_persona"] = auto_bp
+                                    update_data["job_title_normalized"] = normalize_job_title(new_job_title)
+
+                        current_stage = existing.get("stage", 1)
+                        if event:
+                            if current_stage in [1, 2]:
+                                update_data["stage"] = 2
+                        elif processed_data.get("stage"):
+                            update_data["stage"] = processed_data["stage"]
+
+                        # Merge emails
+                        existing_emails_set = {e.get("email", "").lower() for e in existing.get("emails", [])}
+                        new_emails = existing.get("emails", [])[:]
+                        for email_entry in processed_data.get("emails", []):
+                            if email_entry.get("email", "").lower() not in existing_emails_set:
+                                new_emails.append(email_entry)
+                        update_data["emails"] = new_emails
+                        update_data["email"] = new_emails[0].get("email", "") if new_emails else ""
+
+                        # Merge phones
+                        existing_phones = set()
+                        for p in existing.get("phones", []):
+                            phone_key = p.get("raw_input", "") or p.get("e164", "")
+                            if phone_key:
+                                existing_phones.add(phone_key)
+                        new_phones = existing.get("phones", [])[:]
+                        for phone_entry in processed_data.get("phones", []):
+                            phone_key = phone_entry.get("raw_input", "") or phone_entry.get("e164", "")
+                            if phone_key and phone_key not in existing_phones:
+                                new_phones.append(phone_entry)
+                                existing_phones.add(phone_key)
+                        update_data["phones"] = new_phones
+                        if new_phones:
+                            first_phone = new_phones[0]
+                            update_data["phone"] = first_phone.get("raw_input") or first_phone.get("e164") or ""
+                        else:
+                            update_data["phone"] = ""
+
+                        # Merge roles
+                        existing_roles = set(existing.get("roles", []) + existing.get("contact_types", []))
+                        new_roles = list(existing_roles.union(set(processed_data.get("roles", []))))
+                        update_data["roles"] = new_roles
+                        update_data["contact_types"] = new_roles
+
+                        # Add webinar_history if importing for an event
+                        if webinar_entry:
+                            existing_webinar_history = existing.get("webinar_history", [])
+                            already_registered = any(
+                                w.get("event_id") == event_id for w in existing_webinar_history
+                            )
+                            if not already_registered:
+                                update_data["webinar_history"] = existing_webinar_history + [webinar_entry]
+                                contact_email = existing.get("email", "")
+                                if contact_email:
+                                    new_emails_for_calendar.append(contact_email)
+
+                        await db.unified_contacts.update_one(
+                            {"id": contact_id},
+                            {"$set": update_data}
+                        )
+                        updated += 1
+                    else:
+                        errors += 1
+                        error_details.append({"row_index": row_index, "error": "Matched contact not found"})
+
+            except Exception as e:
+                errors += 1
+                error_details.append({"row_index": row_index, "error": str(e)})
+                logger.error(f"Import error at row {row_index}: {e}")
+
+            # Update progress every 5 rows or on last row
+            if idx % 5 == 0 or idx == total - 1:
+                processed_count = created + updated + skipped + errors
+                csv_import_progress[batch_id].update({
+                    "processed": processed_count,
+                    "created": created,
+                    "updated": updated,
+                    "skipped": skipped,
+                    "errors": errors,
+                    "percent": int(processed_count / total * 100) if total else 100
+                })
+
+        # --- Post-import phases ---
+
+        # Sync registrants to webinar_events_v2 (Fix 1)
+        csv_import_progress[batch_id]["phase"] = "Sincronizando registrantes..."
+        if event_id and event:
+            try:
+                imported_contacts = await db.unified_contacts.find(
+                    {"webinar_history.event_id": event_id},
+                    {"_id": 0, "id": 1, "email": 1, "name": 1, "first_name": 1}
+                ).to_list(10000)
+
+                event_doc = await db.webinar_events_v2.find_one({"id": event_id}, {"registrants": 1})
+                existing_emails = {r.get("email", "").lower() for r in (event_doc.get("registrants") or []) if r.get("email")}
+
+                new_registrants = []
+                for c in imported_contacts:
+                    email = (c.get("email") or "").lower()
+                    if email and email not in existing_emails:
+                        new_registrants.append({
+                            "contact_id": c.get("id"),
+                            "email": c.get("email", ""),
+                            "name": c.get("name") or c.get("first_name", ""),
+                            "registered": True,
+                            "attended": False,
+                            "date": now
+                        })
+                        existing_emails.add(email)
+
+                if new_registrants:
+                    await db.webinar_events_v2.update_one(
+                        {"id": event_id},
+                        {"$push": {"registrants": {"$each": new_registrants}}}
+                    )
+                    logger.info(f"Synced {len(new_registrants)} new registrants to event {event_id}")
+            except Exception as e:
+                logger.error(f"Error syncing registrants to event: {e}")
+
+        # Calendar events (Fix 4: deduplication)
+        calendar_events_created = 0
+        calendar_error = None
+        if event and send_calendar_invite and new_emails_for_calendar:
+            csv_import_progress[batch_id]["phase"] = "Enviando invitaciones de calendario..."
+            try:
+                from routers.events_v2 import create_calendar_events_for_webinar, get_youtube_credentials
+                from googleapiclient.discovery import build
+                import os
+
+                frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://persona-assets.preview.emergentagent.com')
+                watching_room_url = f"{frontend_url}/lms/webinar/{event_id}"
+
+                final_description = calendar_description if calendar_description is not None else event.get("description", "")
+                final_location = calendar_location if calendar_location is not None else ""
+
+                # Check for existing calendar events to avoid duplicates across batches
+                event_doc = await db.webinar_events_v2.find_one({"id": event_id}, {"google_calendar_event_ids": 1})
+                existing_cal_ids = event_doc.get("google_calendar_event_ids", []) if event_doc else []
+
+                if existing_cal_ids:
+                    try:
+                        creds = await get_youtube_credentials()
+                        if creds:
+                            calendar_service = build("calendar", "v3", credentials=creds)
+                            cal_event = calendar_service.events().get(
+                                calendarId='primary', eventId=existing_cal_ids[0]
+                            ).execute()
+                            existing_attendees = cal_event.get("attendees", [])
+                            existing_emails_set = {a["email"].lower() for a in existing_attendees}
+                            new_attendees = [
+                                {"email": e} for e in new_emails_for_calendar
+                                if e.lower() not in existing_emails_set
+                            ]
+                            if new_attendees:
+                                cal_event["attendees"] = existing_attendees + new_attendees
+                                calendar_service.events().patch(
+                                    calendarId='primary', eventId=existing_cal_ids[0],
+                                    body={"attendees": cal_event["attendees"]},
+                                    sendUpdates='all'
+                                ).execute()
+                                calendar_events_created = len(new_attendees)
+                                logger.info(f"Added {len(new_attendees)} attendees to existing calendar event")
+                    except Exception as cal_e:
+                        logger.error(f"Error updating existing calendar event, creating new: {cal_e}")
+                        existing_cal_ids = []
+
+                if not existing_cal_ids:
+                    calendar_event_ids = await create_calendar_events_for_webinar(
+                        event_id=event_id,
+                        event_name=event.get("name", ""),
+                        event_description=final_description,
+                        event_date=event.get("webinar_date", ""),
+                        event_time=event.get("webinar_time", "10:00"),
+                        watching_room_url=watching_room_url,
+                        attendee_emails=new_emails_for_calendar,
+                        location=final_location
+                    )
+                    calendar_events_created = len(calendar_event_ids)
+
+                    if calendar_event_ids:
+                        await db.webinar_events_v2.update_one(
+                            {"id": event_id},
+                            {
+                                "$addToSet": {"google_calendar_event_ids": {"$each": calendar_event_ids}},
+                                "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+                            }
+                        )
+            except Exception as e:
+                logger.error(f"Error creating calendar events: {e}")
+                calendar_error = str(e)
+
+        # Schedule email reminders
+        csv_import_progress[batch_id]["phase"] = "Programando recordatorios..."
+        email_scheduled = {"E6": 0, "E7": 0, "E8": 0, "E9": 0, "E10": 0}
+        try:
+            from services.email_scheduler import email_scheduler
+
+            e6_count = await schedule_e6_for_batch(event_id, created + updated)
+            email_scheduled["E6"] = e6_count
+
+            reminder_counts = await email_scheduler.schedule_webinar_reminders(event_id)
+            email_scheduled.update(reminder_counts)
+
+            logger.info(f"Scheduled emails for event {event_id}: {email_scheduled}")
+        except Exception as e:
+            logger.error(f"Error scheduling email reminders: {e}")
+
+        # Update batch with final results and clean up large fields (Fix 6)
+        results = {
+            "created": created,
+            "updated": updated,
+            "skipped": skipped,
+            "errors": errors,
+            "warnings": batch.get("validation_summary", {}).get("warnings", 0),
+            "calendar_events_created": calendar_events_created,
+            "emails_scheduled": email_scheduled
+        }
+        if calendar_error:
+            results["calendar_error"] = calendar_error
+
+        await db.import_batches.update_one(
+            {"batch_id": batch_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "results": results,
+                    "error_details": error_details[:100],
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                },
+                "$unset": {
+                    "raw_content": "",
+                    "validation_results": ""
+                }
+            }
+        )
+
+        # Update progress to complete
+        csv_import_progress[batch_id] = {
+            "status": "complete",
+            "phase": "Importación completada",
+            "total": total,
+            "processed": total,
+            "percent": 100,
+            **results,
+            "error_details": error_details[:10]
+        }
+
+        logger.info(f"Import {batch_id} completed: created={created}, updated={updated}, errors={errors}")
+
+    except Exception as e:
+        logger.error(f"Background import {batch_id} failed: {e}")
+        csv_import_progress[batch_id] = {
+            "status": "error",
+            "phase": f"Error: {str(e)}",
+            "percent": csv_import_progress.get(batch_id, {}).get("percent", 0),
+            "total": len(validation_results),
+            "processed": 0,
+            "created": 0, "updated": 0, "skipped": 0, "errors": 1
+        }
+        # Mark batch as failed in DB
+        await db.import_batches.update_one(
+            {"batch_id": batch_id},
+            {"$set": {"status": "error", "error_details": [{"error": str(e)}], "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    finally:
+        # Clean up progress from memory after 5 minutes
+        async def cleanup_progress():
+            await asyncio.sleep(300)
+            csv_import_progress.pop(batch_id, None)
+        asyncio.ensure_future(cleanup_progress())
 
 
 async def schedule_e6_for_batch(event_id: str, contacts_imported: int) -> int:

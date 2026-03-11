@@ -34,7 +34,7 @@ async def ensure_indexes():
     """Create indexes for frequently queried fields to optimize performance"""
     try:
         # Contacts indexes
-        await db.unified_contacts.create_index("email")
+        await db.unified_contacts.create_index("email", unique=True, sparse=True)
         await db.unified_contacts.create_index("stage")
         await db.unified_contacts.create_index("id")
         await db.unified_contacts.create_index([("created_at", -1)])
@@ -79,7 +79,14 @@ async def ensure_indexes():
         # Events indexes
         await db.events.create_index("date")
         await db.events.create_index("event_type")
-        
+
+        # Import batches indexes
+        await db.import_batches.create_index("batch_id", unique=True)
+        await db.import_batches.create_index(
+            "completed_at",
+            expireAfterSeconds=7 * 24 * 3600  # Auto-delete completed batches after 7 days
+        )
+
         logger.info("✅ Database indexes created successfully (including Persona Classifier V3)")
     except Exception as e:
         logger.warning(f"⚠️ Error creating indexes (may already exist): {e}")
