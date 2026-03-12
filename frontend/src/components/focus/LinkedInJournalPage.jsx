@@ -2,7 +2,7 @@
  * LinkedInJournalPage — LIJ-01 Redesign
  * Timeline + Cases list with Google Places autocomplete for event creation.
  */
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -20,9 +20,29 @@ import {
   Trash2,
   MapPin,
 } from "lucide-react";
-import { Loader } from "@googlemaps/js-api-loader";
-
 const SECTION = getSectionById("linkedin-journal");
+
+const GOOGLE_PLACES_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
+let _googleLoaderPromise = null;
+
+function _loadGoogleMaps() {
+  if (_googleLoaderPromise) return _googleLoaderPromise;
+  if (!GOOGLE_PLACES_KEY) return Promise.resolve(null);
+  _googleLoaderPromise = import("@googlemaps/js-api-loader")
+    .then(({ Loader }) => {
+      const loader = new Loader({
+        apiKey: GOOGLE_PLACES_KEY,
+        version: "weekly",
+        libraries: ["places"],
+      });
+      return loader.load();
+    })
+    .catch((err) => {
+      console.warn("[useGooglePlaces] Failed to load Google Maps:", err);
+      return null;
+    });
+  return _googleLoaderPromise;
+}
 
 const STAGE_BADGE = {
   ganados: "bg-green-500/20 text-green-400",
@@ -34,44 +54,72 @@ const STAGE_BADGE = {
 
 // ── Google Places hook ──────────────────────────────────────────
 
-function useGooglePlaces(inputRef, onSelect) {
+function useGooglePlaces(inputRef, onSelectRef) {
   const autocompleteRef = useRef(null);
 
   useEffect(() => {
-    const apiKey = process.env.REACT_APP_GOOGLE_PLACES_API_KEY;
-    if (!apiKey || !inputRef.current) return;
+    if (!GOOGLE_PLACES_KEY || !inputRef.current) return;
+    if (autocompleteRef.current) return; // already initialized
 
     let mounted = true;
-    const loader = new Loader({ apiKey, libraries: ["places"] });
 
-    loader.importLibrary("places").then((places) => {
-      if (!mounted || !inputRef.current) return;
-      const ac = new places.Autocomplete(inputRef.current, {
-        types: ["establishment", "geocode"],
-      });
-      ac.addListener("place_changed", () => {
-        const place = ac.getPlace();
-        if (place && place.geometry) {
-          onSelect({
-            location_text: place.formatted_address || place.name || "",
-            latitude: place.geometry.location.lat(),
-            longitude: place.geometry.location.lng(),
-          });
-        } else if (place) {
-          onSelect({
-            location_text: place.name || "",
-            latitude: null,
-            longitude: null,
-          });
-        }
-      });
-      autocompleteRef.current = ac;
-    }).catch(() => {
-      // API key missing or invalid — degrade gracefully
+    _loadGoogleMaps().then((google) => {
+      if (!mounted || !google || !inputRef.current) return;
+      try {
+        const ac = new window.google.maps.places.Autocomplete(
+          inputRef.current,
+          { types: ["establishment", "geocode"] }
+        );
+        ac.addListener("place_changed", () => {
+          const place = ac.getPlace();
+          if (!place) return;
+          const cb = onSelectRef.current;
+          if (!cb) return;
+          if (place.geometry) {
+            cb({
+              location_text: place.formatted_address || place.name || "",
+              latitude: place.geometry.location.lat(),
+              longitude: place.geometry.location.lng(),
+            });
+          } else {
+            cb({
+              location_text: place.name || "",
+              latitude: null,
+              longitude: null,
+            });
+          }
+        });
+        autocompleteRef.current = ac;
+      } catch (err) {
+        console.warn("[useGooglePlaces] Autocomplete init failed:", err);
+      }
     });
 
     return () => { mounted = false; };
-  }, [inputRef, onSelect]);
+  }, [inputRef, onSelectRef]);
+}
+
+// ── Error Boundary ──────────────────────────────────────────────
+
+class JournalErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 text-red-400">
+          <strong>Error al renderizar este componente.</strong>
+          <pre className="text-xs mt-2 text-zinc-500">{this.state.error?.message}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -144,6 +192,7 @@ export default function LinkedInJournalPage() {
       statusHistory={[]}
       icon={CalendarClock}
     >
+      <JournalErrorBoundary>
       {/* ── Timeline Section ── */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-white mb-4">
@@ -187,6 +236,7 @@ export default function LinkedInJournalPage() {
           </div>
         )}
       </div>
+      </JournalErrorBoundary>
     </SectionLayout>
   );
 }
@@ -443,14 +493,15 @@ function AddEventForm({ caseId, onCreated, onCancel }) {
   const [saving, setSaving] = useState(false);
 
   const placeInputRef = useRef(null);
+  const onSelectRef = useRef(null);
 
-  const handlePlaceSelect = useCallback((place) => {
+  onSelectRef.current = (place) => {
     setLocationText(place.location_text);
     setLatitude(place.latitude);
     setLongitude(place.longitude);
-  }, []);
+  };
 
-  useGooglePlaces(placeInputRef, handlePlaceSelect);
+  useGooglePlaces(placeInputRef, onSelectRef);
 
   const handleSubmit = async () => {
     if (!name.trim() || !locationText.trim() || !eventDate) return;
