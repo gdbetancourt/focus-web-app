@@ -152,6 +152,34 @@ export const FOCUS_SECTIONS = [
     sourceComponent: "ImportNewConnectionsPage",
   },
   {
+    id: "linkedin-journal",
+    label: "LinkedIn Event Journal",
+    icon: CalendarClock,
+    path: "/focus/linkedin-journal",
+    trafficType: "weekly",
+    subheadline: "Timeline de publicaciones LinkedIn vinculadas a eventos de casos Stage 4/5. Registra eventos, marca checkboxes al publicar.",
+    steps: [
+      {
+        title: "Registra eventos en los casos Stage 4/5.",
+        details: "Agrega nombre, lugar (Google Places) y fecha del evento. Se genera automáticamente un post programado."
+      },
+      {
+        title: "Revisa el timeline de publicaciones pendientes.",
+        details: "Posts vencidos en rojo, próximos en amarillo. Publica en LinkedIn y marca el checkbox."
+      },
+      {
+        title: "Marca como publicado.",
+        details: "Al marcar, se genera automáticamente el aniversario del siguiente año."
+      },
+    ],
+    trafficRules: {
+      red: "Posts pendientes vencidos por más de 7 días",
+      yellow: "Posts pendientes próximos a su fecha programada (≤7 días)",
+      green: "Todos los posts publicados o programados a futuro",
+    },
+    sourceComponent: "LinkedInJournalPage",
+  },
+  {
     id: "marketing-event-planning",
     label: "Marketing Event Planning",
     icon: CalendarDays,
@@ -577,34 +605,6 @@ export const FOCUS_SECTIONS = [
       green: "All tasks scheduled for today have been completed",
     },
     sourceComponent: "TodoTabContent",
-  },
-  {
-    id: "linkedin-journal",
-    label: "LinkedIn Event Journal",
-    icon: CalendarClock,
-    path: "/focus/linkedin-journal",
-    trafficType: "weekly",
-    subheadline: "Timeline de publicaciones LinkedIn vinculadas a eventos de casos Stage 4/5. Registra eventos, marca checkboxes al publicar.",
-    steps: [
-      {
-        title: "Registra eventos en los casos Stage 4/5.",
-        details: "Agrega nombre, lugar (Google Places) y fecha del evento. Se genera automáticamente un post programado."
-      },
-      {
-        title: "Revisa el timeline de publicaciones pendientes.",
-        details: "Posts vencidos en rojo, próximos en amarillo. Publica en LinkedIn y marca el checkbox."
-      },
-      {
-        title: "Marca como publicado.",
-        details: "Al marcar, se genera automáticamente el aniversario del siguiente año."
-      },
-    ],
-    trafficRules: {
-      red: "Posts pendientes vencidos por más de 7 días",
-      yellow: "Posts pendientes próximos a su fecha programada (≤7 días)",
-      green: "Todos los posts publicados o programados a futuro",
-    },
-    sourceComponent: "LinkedInJournalPage",
   },
 ];
 
