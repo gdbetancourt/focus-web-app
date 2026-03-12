@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import api from "../../lib/api";
 import { BookOpen, RefreshCw } from "lucide-react";
 
@@ -67,7 +67,6 @@ const STATUS_DOT = {
 
 const EMPTY_CAP = {
   status: "Sin iniciar",
-  objetivo_palabras: 0,
   objetivo_resultados: "",
   objetivo_accion: "",
   objetivo_aprendizaje: "",
@@ -84,6 +83,22 @@ function countWords(str) {
   return str.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function calcGoals(wordGoal, parts) {
+  const numParts = parts.length;
+  const partGoal = Math.round(wordGoal / numParts);
+  return parts.map((part) => {
+    const chapGoal = Math.round(partGoal / part.chapters.length);
+    return {
+      partIndex: part.index,
+      partGoal,
+      chapters: part.chapters.map((ch) => ({
+        chapIndex: ch.index,
+        chapGoal,
+      })),
+    };
+  });
+}
+
 export default function LibroRockstarsPage() {
   const [activePart, setActivePart] = useState(0);
   const [activeChapter, setActiveChapter] = useState(0);
@@ -94,6 +109,20 @@ export default function LibroRockstarsPage() {
   const [summary, setSummary] = useState([]);
   const [visitedWords, setVisitedWords] = useState({});
   const saveTimer = useRef(null);
+  const goalTimer = useRef(null);
+
+  const goals = useMemo(() => calcGoals(wordGoal, PARTS), [wordGoal]);
+
+  const saveGoal = useCallback((val) => {
+    if (goalTimer.current) clearTimeout(goalTimer.current);
+    goalTimer.current = setTimeout(async () => {
+      try {
+        await api.put("/libro/config/goal", { value: val });
+      } catch (e) {
+        console.warn("Error saving goal:", e);
+      }
+    }, 1000);
+  }, []);
 
   // Load goal + summary on mount
   useEffect(() => {
@@ -192,9 +221,24 @@ export default function LibroRockstarsPage() {
     return row?.status || "Sin iniciar";
   };
 
+  // Get word count for any chapter (real if visited, estimate if not)
+  const getChapWords = (pi, ci) => {
+    const key = `${pi}-${ci}`;
+    if (key in visitedWords) return visitedWords[key];
+    const row = summary.find((r) => r.parte_index === pi && r.capitulo_index === ci);
+    if (row) {
+      const best = (row.rh_len || 0) > 0 ? row.rh_len : (row.pv_len || 0);
+      if (best > 0) return Math.round(best / 5);
+    }
+    return 0;
+  };
+
   const currentPart = PARTS[activePart];
   const currentChap = currentPart.chapters[activeChapter];
   const chapWords = countWords(capData.redaccion_humanizada || capData.primera_version || "");
+  const currentGoals = goals[activePart];
+  const currentChapGoal = currentGoals.chapters[activeChapter].chapGoal;
+  const avgChapGoal = Math.round(wordGoal / totalChapters);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0f1117", color: "#e2e8f0" }}>
@@ -214,12 +258,31 @@ export default function LibroRockstarsPage() {
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Rockstars del Storytelling</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>
-              {doneChapters}/{totalChapters} terminados — {hasEstimates ? "~" : ""}{totalWords.toLocaleString()} / {wordGoal.toLocaleString()} palabras
+              {doneChapters}/{totalChapters} terminados — {hasEstimates ? "~" : ""}{totalWords.toLocaleString()} palabras
             </div>
           </div>
         </div>
-        <div style={{ fontSize: 11, color: saving ? "#f97316" : "#22c55e", fontFamily: "monospace" }}>
-          {saving ? "Guardando..." : "Guardado"}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>Meta:</span>
+            <input
+              type="number"
+              value={wordGoal}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 0;
+                setWordGoal(val);
+                saveGoal(val);
+              }}
+              style={{ ...inputStyle, width: 90, fontSize: 12, padding: "3px 6px", textAlign: "right" }}
+            />
+            <span style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>palabras</span>
+          </div>
+          <span style={{ fontSize: 10, color: "#4b5563", fontFamily: "monospace" }}>
+            = {Math.round(wordGoal / PARTS.length).toLocaleString()}/parte · {avgChapGoal.toLocaleString()}/cap
+          </span>
+          <div style={{ fontSize: 11, color: saving ? "#f97316" : "#22c55e", fontFamily: "monospace" }}>
+            {saving ? "Guardando..." : "Guardado"}
+          </div>
         </div>
       </div>
 
@@ -246,7 +309,10 @@ export default function LibroRockstarsPage() {
               transition: "all 150ms",
             }}
           >
-            {p.label}
+            <div>{p.label}</div>
+            <div style={{ fontSize: 10, color: "#4b5563", fontWeight: 400, marginTop: 2 }}>
+              Meta: {goals[p.index].partGoal.toLocaleString()} palabras
+            </div>
           </button>
         ))}
       </div>
@@ -264,16 +330,17 @@ export default function LibroRockstarsPage() {
           {currentPart.chapters.map((ch) => {
             const isActive = ch.index === activeChapter;
             const st = getChapStatus(activePart, ch.index);
+            const chW = isActive ? chapWords : getChapWords(activePart, ch.index);
+            const chG = currentGoals.chapters[ch.index].chapGoal;
+            const pct = chG > 0 ? Math.min(100, (chW / chG) * 100) : 0;
             return (
               <button
                 key={ch.num}
                 onClick={() => setActiveChapter(ch.index)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
+                  display: "block",
                   width: "100%",
-                  padding: "10px 14px",
+                  padding: "10px 14px 6px",
                   background: isActive ? "#1a1d27" : "transparent",
                   border: "none",
                   borderLeft: isActive ? "2px solid #f97316" : "2px solid transparent",
@@ -282,31 +349,47 @@ export default function LibroRockstarsPage() {
                   transition: "all 150ms",
                 }}
               >
-                <span style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: STATUS_DOT[st] || "#6b7280",
-                  flexShrink: 0,
-                }} />
-                <span style={{
-                  fontSize: 11,
-                  color: isActive ? "#9ca3af" : "#4b5563",
-                  fontFamily: "monospace",
-                  flexShrink: 0,
-                  width: 22,
-                }}>
-                  {String(ch.num).padStart(2, "0")}
-                </span>
-                <span style={{
-                  fontSize: 12,
-                  color: isActive ? "#fff" : "#9ca3af",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}>
-                  {ch.title}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: STATUS_DOT[st] || "#6b7280",
+                    flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 11,
+                    color: isActive ? "#9ca3af" : "#4b5563",
+                    fontFamily: "monospace",
+                    flexShrink: 0,
+                    width: 22,
+                  }}>
+                    {String(ch.num).padStart(2, "0")}
+                  </span>
+                  <span style={{
+                    fontSize: 12,
+                    color: isActive ? "#fff" : "#9ca3af",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {ch.title}
+                  </span>
+                </div>
+                <div style={{ marginTop: 4, paddingLeft: 37 }}>
+                  <div style={{ fontSize: 9, color: "#4b5563", fontFamily: "monospace", marginBottom: 2 }}>
+                    {chW.toLocaleString()} / {chG.toLocaleString()}
+                  </div>
+                  <div style={{ height: 2, background: "#1e2235", borderRadius: 1 }}>
+                    <div style={{
+                      height: 2,
+                      borderRadius: 1,
+                      width: `${pct}%`,
+                      background: pct >= 100 ? "#22c55e" : "#f97316",
+                      transition: "width 200ms",
+                    }} />
+                  </div>
+                </div>
               </button>
             );
           })}
@@ -321,17 +404,14 @@ export default function LibroRockstarsPage() {
           ) : (
             <>
               {/* Chapter header */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontFamily: "monospace", letterSpacing: "0.15em", color: "#f97316", marginBottom: 4 }}>
-                    {currentPart.label.split("—")[0].trim()} — CAPITULO {currentChap.num}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontFamily: "monospace", letterSpacing: "0.15em", color: "#f97316", marginBottom: 4 }}>
+                      {currentPart.label.split("—")[0].trim()} — CAPITULO {currentChap.num}
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "#fff" }}>{currentChap.title}</div>
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#fff" }}>{currentChap.title}</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>
-                    {chapWords.toLocaleString()} palabras
-                  </span>
                   <select
                     value={capData.status || "Sin iniciar"}
                     onChange={(e) => updateField("status", e.target.value)}
@@ -351,20 +431,37 @@ export default function LibroRockstarsPage() {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              {/* Objetivo en Palabras */}
-              <div style={{ marginBottom: 28 }}>
-                <label style={labelStyle}>Objetivo en Palabras</label>
-                <input
-                  type="number"
-                  value={capData.objetivo_palabras || 0}
-                  onChange={(e) => updateField("objetivo_palabras", parseInt(e.target.value) || 0)}
-                  style={{
-                    ...inputStyle,
-                    width: 140,
-                  }}
-                />
+                {/* Word progress */}
+                {(() => {
+                  const pct = currentChapGoal > 0 ? Math.min(100, (chapWords / currentChapGoal) * 100) : 0;
+                  const barColor = pct >= 100 ? "#22c55e" : pct >= 70 ? "#f97316" : "#4b5563";
+                  return (
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                        <span style={{ fontSize: 13, color: "#e2e8f0", fontFamily: "monospace", fontWeight: 600 }}>
+                          {chapWords.toLocaleString()} palabras
+                        </span>
+                        <span style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>
+                          Meta: {currentChapGoal.toLocaleString()}
+                        </span>
+                        {pct >= 100 && (
+                          <span style={{ fontSize: 11, color: "#22c55e", fontFamily: "monospace" }}>
+                            Meta alcanzada
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ height: 4, background: "#1e2235", borderRadius: 2 }}>
+                        <div style={{
+                          height: 4,
+                          borderRadius: 2,
+                          width: `${pct}%`,
+                          background: barColor,
+                          transition: "width 200ms, background 200ms",
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Text fields */}
