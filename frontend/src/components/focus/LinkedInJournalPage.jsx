@@ -34,6 +34,42 @@ const STAGE_BADGE = {
   concluidos: "bg-zinc-500/20 text-zinc-400",
 };
 
+// ── Google Maps script loader (direct <script> tag) ─────────────
+
+let _gmScriptLoaded = false;
+let _gmScriptLoading = false;
+let _gmCallbacks = [];
+
+function _loadGoogleMapsScript(apiKey) {
+  return new Promise((resolve, reject) => {
+    if (_gmScriptLoaded && window.google?.maps?.places) {
+      resolve();
+      return;
+    }
+    _gmCallbacks.push({ resolve, reject });
+    if (_gmScriptLoading) return;
+    _gmScriptLoading = true;
+
+    window.__googleMapsCallback = () => {
+      _gmScriptLoaded = true;
+      _gmScriptLoading = false;
+      _gmCallbacks.forEach((cb) => cb.resolve());
+      _gmCallbacks = [];
+    };
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&callback=__googleMapsCallback&v=weekly`;
+    script.async = true;
+    script.onerror = () => {
+      _gmScriptLoading = false;
+      const err = new Error("Failed to load Google Maps script");
+      _gmCallbacks.forEach((cb) => cb.reject(err));
+      _gmCallbacks = [];
+    };
+    document.head.appendChild(script);
+  });
+}
+
 // ── Google Places hook (PlaceAutocompleteElement) ───────────────
 
 function useGooglePlaces(onPlaceSelect) {
@@ -46,39 +82,38 @@ function useGooglePlaces(onPlaceSelect) {
 
     let mounted = true;
 
-    async function initAutocomplete() {
+    async function init() {
       try {
-        const { setOptions, importLibrary } = await import("@googlemaps/js-api-loader");
-        setOptions({ apiKey: GOOGLE_PLACES_KEY, version: "weekly" });
-        const { PlaceAutocompleteElement } = await importLibrary("places");
-
+        await _loadGoogleMapsScript(GOOGLE_PLACES_KEY);
         if (!mounted || !containerRef.current) return;
 
         containerRef.current.innerHTML = "";
 
-        const ac = new PlaceAutocompleteElement({
+        const ac = new window.google.maps.places.PlaceAutocompleteElement({
           types: ["establishment", "geocode"],
         });
         ac.style.width = "100%";
-        ac.style.display = "block";
         containerRef.current.appendChild(ac);
 
         ac.addEventListener("gmp-placeselect", async (event) => {
-          const place = event.place;
-          await place.fetchFields({
-            fields: ["formattedAddress", "location", "displayName"],
-          });
-          const cb = callbackRef.current;
-          if (!cb) return;
-          cb({
-            location_text: place.formattedAddress || place.displayName?.text || "",
-            latitude: place.location?.lat() ?? null,
-            longitude: place.location?.lng() ?? null,
-          });
+          try {
+            const place = event.place;
+            await place.fetchFields({
+              fields: ["formattedAddress", "location", "displayName"],
+            });
+            const cb = callbackRef.current;
+            if (!cb) return;
+            cb({
+              location_text: place.formattedAddress || place.displayName?.text || "",
+              latitude: place.location?.lat() ?? null,
+              longitude: place.location?.lng() ?? null,
+            });
+          } catch (err) {
+            console.warn("[useGooglePlaces] fetchFields error:", err);
+          }
         });
       } catch (err) {
-        console.warn("[useGooglePlaces] Failed to initialize:", err);
-        // Fallback: render a plain text input
+        console.warn("[useGooglePlaces] init error:", err);
         if (mounted && containerRef.current) {
           containerRef.current.innerHTML = "";
           const input = document.createElement("input");
@@ -93,7 +128,7 @@ function useGooglePlaces(onPlaceSelect) {
       }
     }
 
-    initAutocomplete();
+    init();
 
     return () => {
       mounted = false;
