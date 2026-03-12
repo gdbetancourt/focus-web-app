@@ -146,6 +146,49 @@ class ProfileCheckRequest(BaseModel):
     profile_id: str
     checked: bool
 
+class MaxConnectionsRequest(BaseModel):
+    profile_id: str
+    max_connections: int
+
+
+@router.get("/max-linkedin/settings")
+async def get_max_linkedin_settings():
+    """Get max connections settings per profile"""
+    result = {}
+    for profile in LINKEDIN_PROFILES:
+        doc = await db.focus_settings.find_one({
+            "section": "max-linkedin-conexions",
+            "profile_id": profile
+        })
+        result[profile] = {"max_connections": doc["max_connections"] if doc else 0}
+    return result
+
+
+@router.patch("/max-linkedin/settings")
+async def update_max_linkedin_settings(request: MaxConnectionsRequest):
+    """Update max connections for a profile"""
+    profile_id = request.profile_id.lower()
+    if profile_id not in LINKEDIN_PROFILES:
+        raise HTTPException(status_code=400, detail=f"Invalid profile: {profile_id}")
+    if request.max_connections < 0:
+        raise HTTPException(status_code=400, detail="max_connections must be >= 0")
+
+    await db.focus_settings.update_one(
+        {"section": "max-linkedin-conexions", "profile_id": profile_id},
+        {
+            "$set": {
+                "max_connections": request.max_connections,
+                "updated_at": datetime.now()
+            },
+            "$setOnInsert": {
+                "created_at": datetime.now()
+            }
+        },
+        upsert=True
+    )
+    return {"profile_id": profile_id, "max_connections": request.max_connections}
+
+
 @router.get("/max-linkedin/weekly-checks")
 async def get_max_linkedin_weekly_checks():
     """Get weekly profile check status for Max LinkedIn Conexions"""

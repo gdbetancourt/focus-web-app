@@ -238,9 +238,10 @@ export function ProspectionTabContent() {
     }
   };
   
-  // Open copy dialog to select profile
+  // Open copy dialog to select profile — pre-select assigned_profile
   const handleCopyUrl = (search) => {
     setCopyingSearch(search);
+    setCopyProfile(search.assigned_profile?.toUpperCase() || "GB");
     setCopyDialogOpen(true);
   };
   

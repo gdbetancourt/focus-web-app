@@ -50,6 +50,20 @@ class MarkSearchCopiedRequest(BaseModel):
     profile: str  # "GB" or "MG"
 
 
+class IndustryCreate(BaseModel):
+    name: str
+
+
+class IndustrySearchCreate(BaseModel):
+    keyword: str
+    url: str
+    assigned_profile: Optional[str] = None
+
+
+class IndustrySearchMarkCopied(BaseModel):
+    profile_id: str
+
+
 class MergeCompaniesRequest(BaseModel):
     source_ids: List[str]
     target_id: str
@@ -2456,4 +2470,116 @@ async def get_all_managed_companies(
         "inactive": inactive,
         "total_active": len(active),
         "total_inactive": len(inactive)
+    }
+
+
+# ============================================
+# Industry Searches (LinkedIn outbound by industry)
+# ============================================
+
+@router.get("/active-industries")
+async def get_active_industries():
+    """List all industries with their searches"""
+    industries = await db.linkedin_industries.find(
+        {}, {"_id": 0}
+    ).sort("name", 1).to_list(500)
+
+    for industry in industries:
+        searches = await db.linkedin_industry_searches.find(
+            {"industry_id": industry["id"]}, {"_id": 0}
+        ).sort("created_at", 1).to_list(500)
+        industry["searches"] = searches
+
+    return {"industries": industries}
+
+
+@router.post("/industries")
+async def create_industry(request: IndustryCreate):
+    """Create a new industry"""
+    name = request.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
+
+    industry = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.linkedin_industries.insert_one(industry)
+    industry.pop("_id", None)
+    return industry
+
+
+@router.delete("/industries/{industry_id}")
+async def delete_industry(industry_id: str):
+    """Delete an industry and all its searches"""
+    result = await db.linkedin_industries.delete_one({"id": industry_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Industry not found")
+    await db.linkedin_industry_searches.delete_many({"industry_id": industry_id})
+    return {"success": True}
+
+
+@router.post("/industries/{industry_id}/searches")
+async def add_industry_search(industry_id: str, request: IndustrySearchCreate):
+    """Add a search to an industry"""
+    industry = await db.linkedin_industries.find_one({"id": industry_id})
+    if not industry:
+        raise HTTPException(status_code=404, detail="Industry not found")
+
+    keyword = request.keyword.strip()
+    url = request.url.strip()
+    if not keyword or not url:
+        raise HTTPException(status_code=400, detail="keyword and url are required")
+
+    assigned = request.assigned_profile.lower() if request.assigned_profile else None
+    if assigned and assigned.upper() not in LINKEDIN_PROFILES:
+        raise HTTPException(status_code=400, detail=f"Invalid profile: {request.assigned_profile}")
+
+    search = {
+        "id": str(uuid.uuid4()),
+        "industry_id": industry_id,
+        "keyword": keyword,
+        "url": url,
+        "assigned_profile": assigned,
+        "last_prospected_at": None,
+        "last_prospected_by": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.linkedin_industry_searches.insert_one(search)
+    search.pop("_id", None)
+    return {"success": True, "search": search}
+
+
+@router.delete("/industry-searches/{search_id}")
+async def delete_industry_search(search_id: str):
+    """Delete an industry search"""
+    result = await db.linkedin_industry_searches.delete_one({"id": search_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Search not found")
+    return {"success": True}
+
+
+@router.post("/industry-searches/{search_id}/mark-copied")
+async def mark_industry_search_copied(search_id: str, request: IndustrySearchMarkCopied):
+    """Mark an industry search as prospected"""
+    profile_id = request.profile_id.upper()
+    if profile_id not in LINKEDIN_PROFILES:
+        raise HTTPException(status_code=400, detail=f"Invalid profile: {request.profile_id}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.linkedin_industry_searches.update_one(
+        {"id": search_id},
+        {"$set": {"last_prospected_at": now, "last_prospected_by": profile_id}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Search not found")
+
+    return {
+        "success": True,
+        "search_id": search_id,
+        "prospected_at": now,
+        "prospected_by": profile_id,
+        "prospected_by_name": LINKEDIN_PROFILES[profile_id]
     }
