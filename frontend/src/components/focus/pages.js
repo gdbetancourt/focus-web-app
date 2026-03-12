@@ -26,3 +26,4 @@ export { default as PlanMaestroPage } from './PlanMaestroPage';
 export { default as LinkedInJournalPage } from './LinkedInJournalPage';
 export { default as LibroRockstarsPage } from './LibroRockstarsPage';
 export { default as EmailTemplatesPage } from './EmailTemplatesPage';
+export { default as EmailMetricsPage } from './EmailMetricsPage';

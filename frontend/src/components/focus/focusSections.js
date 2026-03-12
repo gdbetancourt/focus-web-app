@@ -28,6 +28,7 @@ import {
   GitMerge,
   ClipboardList,
   CalendarClock,
+  BarChart3,
 } from "lucide-react";
 
 // LinkedIn profiles for prospecting (fixed)
@@ -490,6 +491,24 @@ export const FOCUS_SECTIONS = [
       green: "Todas las plantillas han sido personalizadas",
     },
     sourceComponent: "EmailTemplatesPage",
+  },
+  {
+    id: "email-metrics",
+    label: "Métricas Email",
+    icon: BarChart3,
+    path: "/focus/email-metrics",
+    trafficType: "weekly",
+    subheadline: "Dashboard de métricas de campañas de email marketing: envíos, aperturas y tasas por webinar.",
+    steps: [
+      { title: "Revisa la lista de webinars con métricas agregadas.", details: "Muestra campañas pendientes, enviadas y abiertas por evento." },
+      { title: "Click en un webinar para ver detalle.", details: "Muestra cada campaña (D-14 a D+1) con métricas individuales y registro de envíos." },
+    ],
+    trafficRules: {
+      red: "Campañas enviadas con 0% de apertura",
+      yellow: "Tasa de apertura por debajo del 20%",
+      green: "Tasa de apertura por encima del 20%",
+    },
+    sourceComponent: "EmailMetricsPage",
   },
   {
     id: "pre-projects",

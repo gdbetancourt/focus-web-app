@@ -36,6 +36,7 @@ export {
   LinkedInJournalPage,
   LibroRockstarsPage,
   EmailTemplatesPage,
+  EmailMetricsPage,
 } from './pages';
 
 // Asset Pages

@@ -36,6 +36,7 @@ import {
   AnalyticsPage,
   LibroRockstarsPage,
   EmailTemplatesPage,
+  EmailMetricsPage,
   // Asset Pages
   ContactsAssetPage,
   CompaniesAssetPage,
@@ -323,6 +324,7 @@ function AppRoutes() {
             <Route path="focus/linkedin-journal" element={<LinkedInJournalPage />} />
             <Route path="focus/libro/rockstars-storytelling" element={<LibroRockstarsPage />} />
             <Route path="focus/email-templates" element={<EmailTemplatesPage />} />
+            <Route path="focus/email-metrics" element={<EmailMetricsPage />} />
 
             {/* Asset Pages */}
             <Route path="focus/assets/contacts" element={<ContactsAssetPage />} />
