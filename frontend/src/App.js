@@ -35,6 +35,7 @@ import {
   MergeDuplicatesFocusPage,
   AnalyticsPage,
   LibroRockstarsPage,
+  EmailTemplatesPage,
   // Asset Pages
   ContactsAssetPage,
   CompaniesAssetPage,
@@ -321,6 +322,7 @@ function AppRoutes() {
             <Route path="focus/plan-maestro" element={<PlanMaestroPage />} />
             <Route path="focus/linkedin-journal" element={<LinkedInJournalPage />} />
             <Route path="focus/libro/rockstars-storytelling" element={<LibroRockstarsPage />} />
+            <Route path="focus/email-templates" element={<EmailTemplatesPage />} />
 
             {/* Asset Pages */}
             <Route path="focus/assets/contacts" element={<ContactsAssetPage />} />

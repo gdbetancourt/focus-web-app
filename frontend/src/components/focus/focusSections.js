@@ -473,6 +473,25 @@ export const FOCUS_SECTIONS = [
     sourceProps: { embedded: true, forceTab: "email" },
   },
   {
+    id: "email-templates",
+    label: "Email Templates",
+    icon: Mail,
+    path: "/focus/email-templates",
+    trafficType: "weekly",
+    subheadline: "Editor de plantillas HTML para las campañas automáticas de email marketing de webinars.",
+    steps: [
+      { title: "Selecciona una plantilla por tipo de campaña.", details: "Hay 5 tipos: Invitación (D-14), Recordatorio (D-7, D-3, D-1) y Follow-up (D+1)." },
+      { title: "Edita el subject y body HTML.", details: "Usa los merge tags disponibles: {{nombre}}, {{evento_titulo}}, {{evento_fecha}}, etc." },
+      { title: "Previsualiza con datos de ejemplo.", details: "El botón Vista Previa sustituye los merge tags con valores de prueba." },
+    ],
+    trafficRules: {
+      red: "Plantillas sin editar desde la instalación",
+      yellow: "Algunas plantillas editadas pero no todas",
+      green: "Todas las plantillas han sido personalizadas",
+    },
+    sourceComponent: "EmailTemplatesPage",
+  },
+  {
     id: "pre-projects",
     label: "Pre-projects",
     icon: FileText,
