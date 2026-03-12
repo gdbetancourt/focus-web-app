@@ -584,28 +584,24 @@ export const FOCUS_SECTIONS = [
     icon: CalendarClock,
     path: "/focus/linkedin-journal",
     trafficType: "weekly",
-    subheadline: "Checklist para publicar posts en LinkedIn vinculados a eventos Stage 4: inmediato + aniversarios anuales.",
+    subheadline: "Timeline de publicaciones LinkedIn vinculadas a eventos de casos Stage 4/5. Registra eventos, marca checkboxes al publicar.",
     steps: [
       {
-        title: "Registra event_date en los casos Stage 4.",
-        details: "El sistema genera automáticamente un post programado para event_date + 1 día."
+        title: "Registra eventos en los casos Stage 4/5.",
+        details: "Agrega nombre, lugar (Google Places) y fecha del evento. Se genera automáticamente un post programado."
       },
       {
-        title: "Redacta y revisa el contenido del post.",
-        details: "Edita el borrador antes de la fecha programada de publicación."
+        title: "Revisa el timeline de publicaciones pendientes.",
+        details: "Posts vencidos en rojo, próximos en amarillo. Publica en LinkedIn y marca el checkbox."
       },
       {
-        title: "Publica manualmente en LinkedIn y marca como publicado.",
-        details: "Copia el texto, publícalo en LinkedIn, y presiona 'Marcar como publicado' en FOCUS1."
-      },
-      {
-        title: "Monitorea aniversarios.",
-        details: "Al marcar como publicado, el sistema crea automáticamente el post del siguiente aniversario."
+        title: "Marca como publicado.",
+        details: "Al marcar, se genera automáticamente el aniversario del siguiente año."
       },
     ],
     trafficRules: {
       red: "Posts pendientes vencidos por más de 7 días",
-      yellow: "Posts pendientes próximos a su fecha programada",
+      yellow: "Posts pendientes próximos a su fecha programada (≤7 días)",
       green: "Todos los posts publicados o programados a futuro",
     },
     sourceComponent: "LinkedInJournalPage",
