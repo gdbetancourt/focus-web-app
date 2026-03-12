@@ -23,26 +23,6 @@ import {
 const SECTION = getSectionById("linkedin-journal");
 
 const GOOGLE_PLACES_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
-let _googleLoaderPromise = null;
-
-function _loadGoogleMaps() {
-  if (_googleLoaderPromise) return _googleLoaderPromise;
-  if (!GOOGLE_PLACES_KEY) return Promise.resolve(null);
-  _googleLoaderPromise = import("@googlemaps/js-api-loader")
-    .then(({ Loader }) => {
-      const loader = new Loader({
-        apiKey: GOOGLE_PLACES_KEY,
-        version: "weekly",
-        libraries: ["places"],
-      });
-      return loader.load();
-    })
-    .catch((err) => {
-      console.warn("[useGooglePlaces] Failed to load Google Maps:", err);
-      return null;
-    });
-  return _googleLoaderPromise;
-}
 
 const STAGE_BADGE = {
   ganados: "bg-green-500/20 text-green-400",
@@ -52,24 +32,30 @@ const STAGE_BADGE = {
   concluidos: "bg-zinc-500/20 text-zinc-400",
 };
 
-// ── Google Places hook ──────────────────────────────────────────
+// ── Google Places hook (js-api-loader v2 functional API) ────────
 
 function useGooglePlaces(inputRef, onSelectRef) {
   const autocompleteRef = useRef(null);
 
   useEffect(() => {
     if (!GOOGLE_PLACES_KEY || !inputRef.current) return;
-    if (autocompleteRef.current) return; // already initialized
+    if (autocompleteRef.current) return;
 
     let mounted = true;
 
-    _loadGoogleMaps().then((google) => {
-      if (!mounted || !google || !inputRef.current) return;
+    async function initAutocomplete() {
       try {
-        const ac = new window.google.maps.places.Autocomplete(
-          inputRef.current,
-          { types: ["establishment", "geocode"] }
-        );
+        const { setOptions, importLibrary } = await import("@googlemaps/js-api-loader");
+        setOptions({ apiKey: GOOGLE_PLACES_KEY, version: "weekly" });
+        const { Autocomplete } = await importLibrary("places");
+
+        if (!mounted || !inputRef.current) return;
+
+        const ac = new Autocomplete(inputRef.current, {
+          types: ["establishment", "geocode"],
+          fields: ["formatted_address", "geometry", "name"],
+        });
+
         ac.addListener("place_changed", () => {
           const place = ac.getPlace();
           if (!place) return;
@@ -91,9 +77,11 @@ function useGooglePlaces(inputRef, onSelectRef) {
         });
         autocompleteRef.current = ac;
       } catch (err) {
-        console.warn("[useGooglePlaces] Autocomplete init failed:", err);
+        console.warn("[useGooglePlaces] Failed to initialize:", err);
       }
-    });
+    }
+
+    initAutocomplete();
 
     return () => { mounted = false; };
   }, [inputRef, onSelectRef]);
