@@ -23,6 +23,8 @@ import {
 const SECTION = getSectionById("linkedin-journal");
 
 const GOOGLE_PLACES_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
+// Diagnostic — remove after confirming env var reaches the build
+console.log("[LIJ-01 ENV] Places key available:", !!GOOGLE_PLACES_KEY, "prefix:", GOOGLE_PLACES_KEY.slice(0, 8) || "(empty)");
 
 const STAGE_BADGE = {
   ganados: "bg-green-500/20 text-green-400",
@@ -32,14 +34,15 @@ const STAGE_BADGE = {
   concluidos: "bg-zinc-500/20 text-zinc-400",
 };
 
-// ── Google Places hook (js-api-loader v2 functional API) ────────
+// ── Google Places hook (PlaceAutocompleteElement) ───────────────
 
-function useGooglePlaces(inputRef, onSelectRef) {
-  const autocompleteRef = useRef(null);
+function useGooglePlaces(onPlaceSelect) {
+  const containerRef = useRef(null);
+  const callbackRef = useRef(onPlaceSelect);
+  callbackRef.current = onPlaceSelect;
 
   useEffect(() => {
-    if (!GOOGLE_PLACES_KEY || !inputRef.current) return;
-    if (autocompleteRef.current) return;
+    if (!GOOGLE_PLACES_KEY || !containerRef.current) return;
 
     let mounted = true;
 
@@ -47,44 +50,58 @@ function useGooglePlaces(inputRef, onSelectRef) {
       try {
         const { setOptions, importLibrary } = await import("@googlemaps/js-api-loader");
         setOptions({ apiKey: GOOGLE_PLACES_KEY, version: "weekly" });
-        const { Autocomplete } = await importLibrary("places");
+        const { PlaceAutocompleteElement } = await importLibrary("places");
 
-        if (!mounted || !inputRef.current) return;
+        if (!mounted || !containerRef.current) return;
 
-        const ac = new Autocomplete(inputRef.current, {
+        containerRef.current.innerHTML = "";
+
+        const ac = new PlaceAutocompleteElement({
           types: ["establishment", "geocode"],
-          fields: ["formatted_address", "geometry", "name"],
         });
+        ac.style.width = "100%";
+        ac.style.display = "block";
+        containerRef.current.appendChild(ac);
 
-        ac.addListener("place_changed", () => {
-          const place = ac.getPlace();
-          if (!place) return;
-          const cb = onSelectRef.current;
+        ac.addEventListener("gmp-placeselect", async (event) => {
+          const place = event.place;
+          await place.fetchFields({
+            fields: ["formattedAddress", "location", "displayName"],
+          });
+          const cb = callbackRef.current;
           if (!cb) return;
-          if (place.geometry) {
-            cb({
-              location_text: place.formatted_address || place.name || "",
-              latitude: place.geometry.location.lat(),
-              longitude: place.geometry.location.lng(),
-            });
-          } else {
-            cb({
-              location_text: place.name || "",
-              latitude: null,
-              longitude: null,
-            });
-          }
+          cb({
+            location_text: place.formattedAddress || place.displayName?.text || "",
+            latitude: place.location?.lat() ?? null,
+            longitude: place.location?.lng() ?? null,
+          });
         });
-        autocompleteRef.current = ac;
       } catch (err) {
         console.warn("[useGooglePlaces] Failed to initialize:", err);
+        // Fallback: render a plain text input
+        if (mounted && containerRef.current) {
+          containerRef.current.innerHTML = "";
+          const input = document.createElement("input");
+          input.placeholder = "Lugar del evento (texto libre)";
+          input.className = "w-full rounded-md border border-[#333] bg-[#111] text-white p-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500";
+          input.addEventListener("input", (e) => {
+            const cb = callbackRef.current;
+            if (cb) cb({ location_text: e.target.value, latitude: null, longitude: null });
+          });
+          containerRef.current.appendChild(input);
+        }
       }
     }
 
     initAutocomplete();
 
-    return () => { mounted = false; };
-  }, [inputRef, onSelectRef]);
+    return () => {
+      mounted = false;
+      if (containerRef.current) containerRef.current.innerHTML = "";
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return containerRef;
 }
 
 // ── Error Boundary ──────────────────────────────────────────────
@@ -474,33 +491,22 @@ function EventDetail({ event, onReload }) {
 
 function AddEventForm({ caseId, onCreated, onCancel }) {
   const [name, setName] = useState("");
-  const [locationText, setLocationText] = useState("");
-  const [latitude, setLatitude] = useState(null);
-  const [longitude, setLongitude] = useState(null);
+  const [placeData, setPlaceData] = useState({ location_text: "", latitude: null, longitude: null });
   const [eventDate, setEventDate] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const placeInputRef = useRef(null);
-  const onSelectRef = useRef(null);
-
-  onSelectRef.current = (place) => {
-    setLocationText(place.location_text);
-    setLatitude(place.latitude);
-    setLongitude(place.longitude);
-  };
-
-  useGooglePlaces(placeInputRef, onSelectRef);
+  const placesContainerRef = useGooglePlaces((selected) => setPlaceData(selected));
 
   const handleSubmit = async () => {
-    if (!name.trim() || !locationText.trim() || !eventDate) return;
+    if (!name.trim() || !eventDate) return;
     setSaving(true);
     try {
       await api.post("/case-events", {
         case_id: caseId,
         name: name.trim(),
-        location_text: locationText.trim(),
-        latitude,
-        longitude,
+        location_text: placeData.location_text || "Sin lugar especificado",
+        latitude: placeData.latitude,
+        longitude: placeData.longitude,
         event_date: eventDate,
       });
       toast.success("Evento creado y publicación programada");
@@ -525,20 +531,10 @@ function AddEventForm({ caseId, onCreated, onCancel }) {
       </div>
       <div>
         <label className="text-xs text-zinc-400 block mb-1">Lugar (Google Places)</label>
-        <input
-          ref={placeInputRef}
-          className="w-full rounded-md border border-[#333] bg-[#111] text-white p-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-          defaultValue={locationText}
-          onChange={(e) => {
-            setLocationText(e.target.value);
-            setLatitude(null);
-            setLongitude(null);
-          }}
-          placeholder="Busca un lugar..."
-        />
-        {latitude && (
+        <div ref={placesContainerRef} />
+        {placeData.latitude && (
           <p className="text-[10px] text-zinc-600 mt-0.5">
-            Coordenadas: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+            Coordenadas: {placeData.latitude.toFixed(4)}, {placeData.longitude.toFixed(4)}
           </p>
         )}
       </div>
@@ -554,7 +550,7 @@ function AddEventForm({ caseId, onCreated, onCancel }) {
       <div className="flex gap-2">
         <Button
           onClick={handleSubmit}
-          disabled={saving || !name.trim() || !locationText.trim() || !eventDate}
+          disabled={saving || !name.trim() || !eventDate}
           className="bg-blue-600 hover:bg-blue-700 text-white"
           size="sm"
         >
