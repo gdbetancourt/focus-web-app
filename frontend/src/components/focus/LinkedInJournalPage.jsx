@@ -23,8 +23,7 @@ import {
 const SECTION = getSectionById("linkedin-journal");
 
 const GOOGLE_PLACES_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
-// Diagnostic — remove after confirming env var reaches the build
-console.log("[LIJ-01 ENV] Places key available:", !!GOOGLE_PLACES_KEY, "prefix:", GOOGLE_PLACES_KEY.slice(0, 8) || "(empty)");
+
 
 const STAGE_BADGE = {
   ganados: "bg-green-500/20 text-green-400",
@@ -109,11 +108,11 @@ function useGooglePlaces(onPlaceSelect) {
               longitude: place.location?.lng() ?? null,
             });
           } catch (err) {
-            console.warn("[useGooglePlaces] fetchFields error:", err);
+            // fetchFields failed — silent fallback
           }
         });
       } catch (err) {
-        console.warn("[useGooglePlaces] init error:", err);
+        // Places init failed — fall back to plain input
         if (mounted && containerRef.current) {
           containerRef.current.innerHTML = "";
           const input = document.createElement("input");
