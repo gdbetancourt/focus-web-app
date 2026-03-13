@@ -1,6 +1,6 @@
 /**
  * URL Migration Component
- * Allows migrating LinkedIn URN URLs to clean vanity URLs using Apify
+ * Allows migrating LinkedIn URN URLs to clean vanity URLs
  */
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";

@@ -19,7 +19,6 @@ import {
   AccordionTrigger,
 } from "../../components/ui/accordion";
 import api from "../../lib/api";
-import ApifyStatusIndicator from "../../components/ApifyStatusIndicator";
 import {
   FileText,
   RefreshCw,
@@ -328,7 +327,6 @@ export default function PostsDealMakers() {
           </div>
         </div>
         <div className="flex gap-2 items-center">
-          <ApifyStatusIndicator />
           <Button onClick={loadData} variant="outline" className="border-[#333] text-slate-300">
             <RefreshCw className="w-4 h-4" />
           </Button>

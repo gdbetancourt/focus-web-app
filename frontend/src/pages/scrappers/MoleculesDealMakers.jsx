@@ -17,7 +17,6 @@ import {
   CollapsibleTrigger,
 } from "../../components/ui/collapsible";
 import api from "../../lib/api";
-import ApifyStatusIndicator from "../../components/ApifyStatusIndicator";
 import {
   RefreshCw,
   Building2,
@@ -261,7 +260,6 @@ export default function MoleculesDealMakers() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <ApifyStatusIndicator />
           <Button onClick={loadData} variant="outline" className="border-[#333] text-slate-300">
             <RefreshCw className="w-4 h-4" />
           </Button>

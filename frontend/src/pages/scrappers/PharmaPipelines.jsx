@@ -31,7 +31,6 @@ import {
 } from "../../components/ui/dialog";
 import { toast } from "sonner";
 import api from "../../lib/api";
-import ApifyStatusAlert from "../../components/ApifyStatusAlert";
 import {
   Play,
   RefreshCw,
@@ -489,9 +488,6 @@ export default function PharmaPipelines() {
 
   return (
     <div className="space-y-6" data-testid="pharma-pipelines-page">
-      {/* Apify Status Alert */}
-      <ApifyStatusAlert />
-      
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-4">

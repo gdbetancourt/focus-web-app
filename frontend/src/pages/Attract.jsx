@@ -200,17 +200,8 @@ export default function Attract() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">TikTok Trends Integration</h3>
               <p className="text-slate-400 max-w-sm mx-auto mb-6">
-                Get real-time trending videos from TikTok to inspire your content strategy. 
-                Requires Apify TikTok actor subscription.
+                Get real-time trending videos from TikTok to inspire your content strategy.
               </p>
-              <Button
-                variant="outline"
-                className="border-pink-500/30 text-pink-400 hover:bg-pink-500/10"
-                onClick={() => window.open('https://console.apify.com/actors/zKZGQORXyyBBeJtdg', '_blank')}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Enable TikTok Trends
-              </Button>
             </div>
           </CardContent>
         </Card>

@@ -11,7 +11,6 @@ import {
 } from '../../components/ui/collapsible';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import ApifyStatusIndicator from '../../components/ApifyStatusIndicator';
 
 const PositionDealMakers = () => {
   const [isSearching, setIsSearching] = useState({});
@@ -268,8 +267,7 @@ const PositionDealMakers = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ApifyStatusIndicator />
-          <Button 
+          <Button
             onClick={syncKeywords} 
             variant="outline" 
             className="border-[#333] text-slate-300"
@@ -308,7 +306,7 @@ const PositionDealMakers = () => {
               <div className="flex items-center gap-3">
                 <AlertTriangle className="w-8 h-8 text-red-500" />
                 <div>
-                  <h3 className="text-red-400 font-bold">⚠️ Límite de Apify Alcanzado</h3>
+                  <h3 className="text-red-400 font-bold">Limite de Busquedas Alcanzado</h3>
                   <p className="text-red-300/80 text-sm">
                     {weeklyProgress.rate_limit_alert.message || 'Se alcanzó el límite de búsquedas. El semáforo está en rojo.'}
                   </p>

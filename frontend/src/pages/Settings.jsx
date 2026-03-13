@@ -21,8 +21,6 @@ import {
   Loader2,
   Unplug,
   Send,
-  Video,
-  Zap,
   Calendar,
   Phone,
   Trash2,
@@ -61,8 +59,7 @@ export default function Settings() {
   const [settings, setSettings] = useState({
     hubspot_token: "",
     hubspot_list_id: "",
-    sender_email: "",
-    apify_token: ""
+    sender_email: ""
   });
   const [gmailStatus, setGmailStatus] = useState({
     connected: false,
@@ -133,8 +130,7 @@ export default function Settings() {
       setSettings({
         hubspot_token: response.data.hubspot_token || "",
         hubspot_list_id: response.data.hubspot_list_id || "",
-        sender_email: response.data.sender_email || "",
-        apify_token: response.data.apify_token || ""
+        sender_email: response.data.sender_email || ""
       });
       setSenderName(response.data.sender_name || "Leaderlix");
     } catch (error) {
@@ -464,10 +460,6 @@ export default function Settings() {
       // Only update tokens if they were changed (not masked)
       if (settings.hubspot_token && !settings.hubspot_token.startsWith("***")) {
         updateData.hubspot_token = settings.hubspot_token;
-      }
-      
-      if (settings.apify_token && !settings.apify_token.startsWith("***")) {
-        updateData.apify_token = settings.apify_token;
       }
       
       await updateSettings(updateData);
@@ -867,65 +859,6 @@ export default function Settings() {
                 No configurado
               </Badge>
             )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* API Tokens - Apify, etc. */}
-      <Card className="stat-card">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-xl">
-              <Zap className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <CardTitle className="text-xl">API Tokens</CardTitle>
-              <CardDescription>Tokens para integraciones externas (Apify, etc.)</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-4">
-            {/* Apify Token */}
-            <div className="p-4 bg-[#111111] rounded-lg border">
-              <div className="flex items-center gap-2 mb-2">
-                <Video className="w-4 h-4 text-pink-400" />
-                <Label className="text-sm font-medium">Apify Token</Label>
-              </div>
-              <Input
-                type="password"
-                value={settings.apify_token}
-                onChange={(e) => setSettings({ ...settings, apify_token: e.target.value })}
-                placeholder="apify_api_..."
-                className="mb-2"
-                data-testid="apify-token"
-              />
-              <p className="text-xs text-slate-500">
-                Token para obtener videos trending de TikTok en la sección Attract.{" "}
-                <a 
-                  href="https://console.apify.com/account/integrations" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-purple-400 hover:underline inline-flex items-center gap-1"
-                >
-                  Obtener token <ExternalLink className="w-3 h-3" />
-                </a>
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {settings.apify_token ? (
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Apify Configurado
-                </Badge>
-              ) : (
-                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  Apify no configurado (usando datos mock)
-                </Badge>
-              )}
-            </div>
           </div>
         </CardContent>
       </Card>

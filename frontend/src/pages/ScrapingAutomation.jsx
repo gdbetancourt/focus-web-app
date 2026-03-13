@@ -37,7 +37,6 @@ import {
 
 export default function ScrapingAutomation() {
   const [loading, setLoading] = useState(true);
-  const [apifyStatus, setApifyStatus] = useState(null);
   const [quotas, setQuotas] = useState(null);
   const [phoneStats, setPhoneStats] = useState(null);
   const [automationStatus, setAutomationStatus] = useState(null);
@@ -57,8 +56,7 @@ export default function ScrapingAutomation() {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [apifyRes, quotasRes, phoneRes, statusRes, historyRes, pendingRes, alertsRes] = await Promise.all([
-        api.get("/scraping-automation/apify/status").catch(() => ({ data: null })),
+      const [quotasRes, phoneRes, statusRes, historyRes, pendingRes, alertsRes] = await Promise.all([
         api.get("/scraping-automation/quotas").catch(() => ({ data: null })),
         api.get("/scraping-automation/phone-enrichment/stats").catch(() => ({ data: null })),
         api.get("/scraping-automation/status").catch(() => ({ data: null })),
@@ -66,8 +64,6 @@ export default function ScrapingAutomation() {
         api.get("/scraping-automation/phone-enrichment/pending?limit=20").catch(() => ({ data: { contacts: [] } })),
         api.get("/scraping-automation/alerts?limit=20").catch(() => ({ data: { alerts: [], unread_count: 0 } })),
       ]);
-      
-      setApifyStatus(apifyRes.data);
       setQuotas(quotasRes.data);
       setPhoneStats(phoneRes.data);
       setAutomationStatus(statusRes.data);
@@ -139,7 +135,7 @@ export default function ScrapingAutomation() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Scraping Automation</h1>
-            <p className="text-sm text-slate-500">Monitoreo de Apify, cuotas y enriquecimiento</p>
+            <p className="text-sm text-slate-500">Monitoreo de cuotas y enriquecimiento</p>
           </div>
         </div>
         <Button onClick={loadAllData} variant="outline" className="border-[#333]">
@@ -148,55 +144,8 @@ export default function ScrapingAutomation() {
         </Button>
       </div>
 
-      {/* Apify Status Alert */}
-      {apifyStatus?.alerts?.length > 0 && (
-        <div className="space-y-2">
-          {apifyStatus.alerts.map((alert, idx) => (
-            <div
-              key={idx}
-              className={`p-4 rounded-lg flex items-center gap-3 ${
-                alert.type === "critical" ? "bg-red-500/20 border border-red-500/50" :
-                alert.type === "error" ? "bg-red-500/20 border border-red-500/50" :
-                alert.type === "warning" ? "bg-yellow-500/20 border border-yellow-500/50" :
-                "bg-blue-500/20 border border-blue-500/50"
-              }`}
-            >
-              <AlertTriangle className={`w-5 h-5 ${
-                alert.type === "critical" || alert.type === "error" ? "text-red-400" :
-                alert.type === "warning" ? "text-yellow-400" : "text-blue-400"
-              }`} />
-              <span className="text-white">{alert.message}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Status Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Apify Connection */}
-        <Card className="bg-[#111] border-[#222]">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500">Apify</p>
-                <p className="text-lg font-bold text-white mt-1">
-                  {apifyStatus?.connected ? "Connected" : "Disconnected"}
-                </p>
-              </div>
-              {apifyStatus?.connected ? (
-                <CheckCircle className="w-8 h-8 text-green-400" />
-              ) : (
-                <XCircle className="w-8 h-8 text-red-400" />
-              )}
-            </div>
-            {apifyStatus?.plan && (
-              <p className="text-xs text-slate-500 mt-2">
-                ${apifyStatus.plan.remaining_usd} remaining
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {/* Active Schedules */}
         <Card className="bg-[#111] border-[#222]">
           <CardContent className="p-4">

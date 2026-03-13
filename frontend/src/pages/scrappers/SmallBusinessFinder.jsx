@@ -7,7 +7,6 @@ import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import ApifyStatusAlert from '../../components/ApifyStatusAlert';
 
 const SmallBusinessFinder = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -339,9 +338,6 @@ const SmallBusinessFinder = () => {
 
   return (
     <div className="space-y-6" data-testid="small-business-finder-page">
-      {/* Apify Status Alert */}
-      <ApifyStatusAlert />
-      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
