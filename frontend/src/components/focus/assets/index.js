@@ -15,3 +15,4 @@ export { default as FormatosAssetPage } from './FormatosAssetPage';
 export { default as TimeTrackerAssetPage } from './TimeTrackerAssetPage';
 export { default as CertificatesAssetPage } from './CertificatesAssetPage';
 export { default as PersonaClassifierAssetPage } from './PersonaClassifierAssetPage';
+export { default as ManualesAnalisisAssetPage } from './ManualesAnalisisAssetPage';

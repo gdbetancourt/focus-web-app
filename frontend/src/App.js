@@ -50,6 +50,7 @@ import {
   TimeTrackerAssetPage,
   CertificatesAssetPage,
   PersonaClassifierAssetPage,
+  ManualesAnalisisAssetPage,
 } from "./components/focus";
 
 // Step 1: Prospect - Individual Scrapper Pages
@@ -339,6 +340,7 @@ function AppRoutes() {
             <Route path="focus/assets/time-tracker" element={<TimeTrackerAssetPage />} />
             <Route path="focus/assets/certificates" element={<CertificatesAssetPage />} />
             <Route path="focus/assets/persona-classifier" element={<PersonaClassifierAssetPage />} />
+            <Route path="focus/assets/manuales-analisis" element={<ManualesAnalisisAssetPage />} />
           </Route>
           
           {/* Protected routes */}

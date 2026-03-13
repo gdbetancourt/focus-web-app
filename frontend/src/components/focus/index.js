@@ -53,4 +53,5 @@ export {
   TimeTrackerAssetPage,
   CertificatesAssetPage,
   PersonaClassifierAssetPage,
+  ManualesAnalisisAssetPage,
 } from './assets';

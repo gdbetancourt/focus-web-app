@@ -18,6 +18,7 @@ import {
   Clock,
   Award,
   Zap,
+  FileText,
 } from "lucide-react";
 
 export const ASSETS_SECTIONS = [
@@ -116,6 +117,14 @@ export const ASSETS_SECTIONS = [
     path: "/focus/assets/certificates",
     inConstruction: false,
     sourceComponent: "Certificados",
+  },
+  {
+    id: "manuales-analisis",
+    label: "Manuales de Análisis",
+    icon: FileText,
+    path: "/focus/assets/manuales-analisis",
+    inConstruction: false,
+    sourceComponent: "ManualesAnalisisAssetPage",
   },
 ];
 
