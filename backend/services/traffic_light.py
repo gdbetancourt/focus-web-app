@@ -160,10 +160,30 @@ async def calculate_all_traffic_lights():
     editorial_opps = await db.editorial_opportunities.count_documents({})
     status["2.2.8"] = "green" if editorial_opps > 0 else "yellow"
     
-    # 2.2.9 Long Form Videos
-    videos_count = await db.youtube_videos.count_documents({})
-    scheduled_videos = await db.youtube_videos.count_documents({"status": "scheduled"})
-    status["2.2.9"] = "green" if scheduled_videos > 0 else "yellow" if videos_count > 0 else "red"
+    # 2.2.9 Long Form Videos (YouTube Ideas — PostgreSQL)
+    try:
+        from services.pg_pool import get_pg_pool
+        pg = get_pg_pool()
+        async with pg.acquire() as conn:
+            from datetime import date, timedelta
+            today = date.today()
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+            total_active = await conn.fetchval(
+                "SELECT COUNT(*) FROM youtube_videos WHERE status != 'publicado'"
+            )
+            scheduled_this_week = await conn.fetchval(
+                "SELECT COUNT(*) FROM youtube_videos WHERE target_publish_date BETWEEN $1 AND $2",
+                week_start, week_end,
+            )
+        if scheduled_this_week > 0 and total_active > 0:
+            status["2.2.9"] = "green"
+        elif total_active > 0:
+            status["2.2.9"] = "yellow"
+        else:
+            status["2.2.9"] = "red"
+    except Exception:
+        status["2.2.9"] = "gray"
     
     # 2.2.10 Own Events - Check for overdue tasks
     events = await db.events.find({}).to_list(100)

@@ -13,6 +13,9 @@ load_dotenv(ROOT_DIR / '.env')
 MONGO_URL = os.environ['MONGO_URL']
 DB_NAME = os.environ['DB_NAME']
 
+# PostgreSQL
+POSTGRES_URL = os.environ.get('POSTGRES_URL', '')
+
 # JWT
 SECRET_KEY = os.environ.get('SECRET_KEY', 'leaderlix-secret-key-change-in-production')
 ALGORITHM = "HS256"

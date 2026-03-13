@@ -94,6 +94,7 @@ from routers.unified_companies import router as unified_companies_router
 from routers.industries_v2 import router as industries_v2_router
 from routers.linkedin_import import router as linkedin_import_router
 from routers.persona_classifier import router as persona_classifier_router
+from routers.youtube_ideas import router as youtube_ideas_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -223,6 +224,7 @@ api_router.include_router(industries_v2_router)
 api_router.include_router(admin_sync_router)
 api_router.include_router(linkedin_import_router)
 api_router.include_router(persona_classifier_router)
+api_router.include_router(youtube_ideas_router)
 
 app.include_router(api_router)
 
@@ -235,10 +237,14 @@ async def startup_event():
     """Start background schedulers on app startup"""
     # Create database indexes for performance
     await ensure_indexes()
-    
+
+    # Initialize PostgreSQL pool
+    from services.pg_pool import init_pg_pool
+    await init_pg_pool()
+
     # Start the main scheduler
     start_scheduler()
-    
+
     # Start email queue processor (processes queue every 60 seconds)
     try:
         from services.email_scheduler import email_scheduler
@@ -250,14 +256,18 @@ async def startup_event():
 async def shutdown_db_client():
     """Stop schedulers and close DB on shutdown"""
     stop_scheduler()
-    
+
     # Stop email scheduler
     try:
         from services.email_scheduler import email_scheduler
         email_scheduler.stop_background_task()
     except Exception:
         pass
-    
+
+    # Close PostgreSQL pool
+    from services.pg_pool import close_pg_pool
+    await close_pg_pool()
+
     await close_db()
 
 # Endpoint to check scheduler status

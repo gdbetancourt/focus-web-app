@@ -548,22 +548,26 @@ export const FOCUS_SECTIONS = [
     icon: Youtube,
     path: "/focus/youtube-ideas",
     trafficType: "weekly",
-    inConstruction: true,
-    subheadline: "Content planning for YouTube channel to establish thought leadership and attract new prospects.",
+    inConstruction: false,
+    subheadline: "Pipeline de produccion de videos de YouTube. Gestiona desde la idea hasta la publicacion.",
     steps: [
       {
-        title: "Review content ideas and prioritize.",
-        details: "Evaluate which ideas align best with current marketing goals."
+        title: "Programa un video con fecha, formato y tema.",
+        details: "Crea un nuevo video en el Kanban con los 3 campos obligatorios."
       },
       {
-        title: "Schedule content production.",
-        details: "Assign dates and resources for content creation."
+        title: "Compila referencias y sube reportes.",
+        details: "Avanza el video por las etapas: referencias, reporte de patrones, metodos y guion."
+      },
+      {
+        title: "Graba y publica el video.",
+        details: "Marca como grabado y agrega el link de YouTube al publicar."
       },
     ],
     trafficRules: {
-      red: "No content scheduled for this month",
-      yellow: "Some content scheduled but below target",
-      green: "Content calendar is fully planned",
+      red: "No hay videos en produccion activa",
+      yellow: "Hay videos en el pipeline pero ninguno programado esta semana",
+      green: "Al menos un video programado esta semana y pipeline activo",
     },
     sourceComponent: "YouTubeIdeasPage",
   },

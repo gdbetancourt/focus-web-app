@@ -135,3 +135,5 @@ yarl==1.22.0
 zipp==3.23.0
 slowapi==0.1.9
 rapidfuzz
+asyncpg>=0.29.0
+pypdf>=4.0.0
