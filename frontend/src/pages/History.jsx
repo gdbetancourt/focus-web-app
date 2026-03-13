@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getEmailLogs } from "../lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import StatusBadge from "../components/StatusBadge";
 import {
   Table,
   TableBody,
@@ -45,41 +46,26 @@ export default function History() {
   const getStatusBadge = (status, openedAt, clickedAt) => {
     if (clickedAt) {
       return (
-        <Badge className="badge-success flex items-center gap-1">
-          <MousePointer className="w-3 h-3" />
-          Clic
-        </Badge>
+        <StatusBadge status="clicked" icon={<MousePointer className="w-3 h-3" />}>Clic</StatusBadge>
       );
     }
     if (openedAt) {
       return (
-        <Badge className="bg-blue-100 text-blue-700 border-blue-200 flex items-center gap-1">
-          <Eye className="w-3 h-3" />
-          Abierto
-        </Badge>
+        <StatusBadge status="opened" icon={<Eye className="w-3 h-3" />}>Abierto</StatusBadge>
       );
     }
     if (status === 'sent') {
       return (
-        <Badge className="badge-neutral flex items-center gap-1">
-          <CheckCircle className="w-3 h-3" />
-          Enviado
-        </Badge>
+        <StatusBadge status="sent" icon={<CheckCircle className="w-3 h-3" />}>Enviado</StatusBadge>
       );
     }
     if (status === 'failed') {
       return (
-        <Badge className="badge-error flex items-center gap-1">
-          <XCircle className="w-3 h-3" />
-          Error
-        </Badge>
+        <StatusBadge status="failed" icon={<XCircle className="w-3 h-3" />}>Error</StatusBadge>
       );
     }
     return (
-      <Badge className="badge-warning flex items-center gap-1">
-        <AlertCircle className="w-3 h-3" />
-        Pendiente
-      </Badge>
+      <StatusBadge status="pending" icon={<AlertCircle className="w-3 h-3" />}>Pendiente</StatusBadge>
     );
   };
 

@@ -26,10 +26,11 @@ const STEP_CONFIG = {
   default: { icon: RefreshCw, color: "text-[#ff3300]", bg: "bg-[#ff3300]/20" },
 };
 
-// Detect step type from message
-const getStepConfig = (currentStep) => {
+// Resolve config: explicit moduleType takes priority, fall back to string matching
+const resolveConfig = (moduleType, currentStep) => {
+  if (moduleType && STEP_CONFIG[moduleType]) return STEP_CONFIG[moduleType];
   if (!currentStep) return STEP_CONFIG.default;
-  
+
   const stepLower = currentStep.toLowerCase();
   if (stepLower.includes("whatsapp")) return STEP_CONFIG.whatsapp;
   if (stepLower.includes("linkedin")) return STEP_CONFIG.linkedin;
@@ -37,18 +38,18 @@ const getStepConfig = (currentStep) => {
   if (stepLower.includes("caso") || stepLower.includes("deal")) return STEP_CONFIG.cases;
   if (stepLower.includes("contacto") || stepLower.includes("rol")) return STEP_CONFIG.contacts;
   if (stepLower.includes("cotizaci")) return STEP_CONFIG.quotes;
-  
+
   return STEP_CONFIG.default;
 };
 
-export function LoadingProgress({ loadingProgress, embedded = false }) {
+export function LoadingProgress({ loadingProgress, embedded = false, moduleType }) {
   const { isLoading, currentStep, progress, totalSteps, completedSteps, details } = loadingProgress;
 
   if (!isLoading) {
     return null;
   }
 
-  const config = getStepConfig(currentStep);
+  const config = resolveConfig(moduleType, currentStep);
   const IconComponent = config.icon;
 
   return (

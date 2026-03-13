@@ -183,23 +183,22 @@ function getRoleColors(role) {
   return ROLE_COLORS[role] || { color: "text-slate-400", bgColor: "bg-slate-500/10" };
 }
 
-// Weekly indicator component - Gray is NOT allowed for current week
+// Weekly indicator component — unknown/undefined/null → gray (neutral)
 function WeeklyIndicator({ status }) {
   const colors = {
     green: "bg-green-500",
     yellow: "bg-yellow-500",
     red: "bg-red-500",
-    // Gray is only for future weeks, but default to green if somehow gray appears
-    gray: "bg-green-500"
+    gray: "bg-slate-500"
   };
-  
-  // Ensure we never show gray for current week - default to green
-  const effectiveStatus = status === "gray" ? "green" : (status || "green");
-  
+
+  const effectiveStatus = colors[status] ? status : "gray";
+
   return (
-    <div 
-      className={`w-3 h-3 rounded-full ${colors[effectiveStatus] || colors.green}`}
+    <div
+      className={`w-3 h-3 rounded-full ${colors[effectiveStatus]}`}
       title={`Status: ${effectiveStatus}`}
+      aria-label={`Weekly status: ${effectiveStatus}`}
     />
   );
 }

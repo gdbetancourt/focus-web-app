@@ -115,23 +115,23 @@ export default function AdminPanel() {
 
   const getStatusBadge = (status) => {
     if (status === "active") {
-      return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Activo</Badge>;
+      return <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900">Activo</Badge>;
     }
     if (status === "configured") {
-      return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Configurado</Badge>;
+      return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900">Configurado</Badge>;
     }
     return <Badge variant="outline" className="text-slate-500">Pendiente</Badge>;
   };
 
   const getColorClasses = (color) => {
     const colors = {
-      blue: "bg-blue-100 text-blue-700",
-      pink: "bg-pink-100 text-pink-700",
-      green: "bg-green-100 text-green-700",
-      purple: "bg-purple-100 text-purple-700",
-      amber: "bg-amber-100 text-amber-700"
+      blue: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+      pink: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
+      green: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+      purple: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+      amber: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
     };
-    return colors[color] || "bg-[#151515] text-slate-200";
+    return colors[color] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
   };
 
   if (loading) {
@@ -351,7 +351,7 @@ export default function AdminPanel() {
                       <Badge 
                         key={fidx}
                         variant={module.status === 'active' ? 'default' : 'outline'}
-                        className={module.status === 'active' ? 'bg-green-100 text-green-700 hover:bg-green-100' : ''}
+                        className={module.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900' : ''}
                       >
                         {feature}
                       </Badge>

@@ -15,6 +15,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Checkbox } from "../components/ui/checkbox";
 import { Badge } from "../components/ui/badge";
+import StatusBadge from "../components/StatusBadge";
 import { Switch } from "../components/ui/switch";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -330,13 +331,13 @@ export default function Campaigns() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Aprobada</Badge>;
+        return <StatusBadge status="approved">Aprobada</StatusBadge>;
       case 'sent':
-        return <Badge className="badge-success">Enviada</Badge>;
+        return <StatusBadge status="sent">Enviada</StatusBadge>;
       case 'sending':
-        return <Badge className="badge-warning">Enviando</Badge>;
+        return <StatusBadge status="sending">Enviando</StatusBadge>;
       default:
-        return <Badge className="badge-neutral">Borrador</Badge>;
+        return <StatusBadge status="draft">Borrador</StatusBadge>;
     }
   };
 

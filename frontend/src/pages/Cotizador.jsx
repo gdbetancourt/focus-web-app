@@ -325,11 +325,11 @@ export default function Cotizador() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      draft: "bg-[#151515] text-slate-200",
-      sent: "bg-blue-100 text-blue-700",
-      accepted: "bg-green-100 text-green-700",
-      rejected: "bg-red-100 text-red-700",
-      expired: "bg-amber-100 text-amber-700"
+      draft: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+      sent: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+      accepted: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+      rejected: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+      expired: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
     };
     const labels = {
       draft: "Borrador",
@@ -338,7 +338,7 @@ export default function Cotizador() {
       rejected: "Rechazada",
       expired: "Expirada"
     };
-    return <Badge className={styles[status]}>{labels[status] || status}</Badge>;
+    return <Badge className={styles[status] || styles.draft}>{labels[status] || status}</Badge>;
   };
 
   if (loading) {
@@ -638,13 +638,13 @@ export default function Cotizador() {
                 <span className="font-medium">Total participantes: {totalParticipants}</span>
                 <div className="flex gap-2">
                   {includesMasterclass && (
-                    <Badge className="bg-purple-100 text-purple-700">
+                    <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
                       <Sparkles className="w-3 h-3 mr-1" />
                       Incluye Masterclass
                     </Badge>
                   )}
                   {includesCourse && (
-                    <Badge className="bg-green-100 text-green-700">
+                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                       <GraduationCap className="w-3 h-3 mr-1" />
                       Incluye Curso Titular
                     </Badge>
@@ -907,10 +907,10 @@ export default function Cotizador() {
                       <Badge variant="outline">Autoevaluación 360°</Badge>
                       <Badge variant="outline">Certificado</Badge>
                       {calculatedTotals.includes_masterclass && (
-                        <Badge className="bg-purple-100 text-purple-700">Masterclass</Badge>
+                        <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Masterclass</Badge>
                       )}
                       {calculatedTotals.includes_course && (
-                        <Badge className="bg-green-100 text-green-700">Curso Titular</Badge>
+                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Curso Titular</Badge>
                       )}
                     </div>
                   </div>

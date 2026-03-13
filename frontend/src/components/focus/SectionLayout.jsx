@@ -81,7 +81,8 @@ function TrafficLightHistory({ isDaily = false, currentStatus = "gray", historyS
                 !hasHistoricalStatus && isFuture && "bg-slate-800",
                 isCurrent && "ring-1 ring-white/30"
               )}
-              title={isDaily ? `Day ${periodNumber}` : `Week ${periodNumber}`}
+              title={`${isDaily ? `Day ${periodNumber}` : `Week ${periodNumber}`}: ${hasHistoricalStatus ? historicalStatus : isCurrent ? (currentStatus || "gray") : "no data"}`}
+              aria-label={`${isDaily ? "Day" : "Week"} ${periodNumber} status: ${hasHistoricalStatus ? historicalStatus : isCurrent ? (currentStatus || "gray") : "no data"}`}
             />
           );
         })}
@@ -176,19 +177,19 @@ function StepsSidebar({ steps = [], trafficRules = {} }) {
           <div className="space-y-2">
             {trafficRules.red && (
               <div className="flex items-start gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-500 mt-1 flex-shrink-0" />
+                <span className="w-3 h-3 rounded-full bg-red-500 mt-1 flex-shrink-0" title="Estado: rojo" aria-label="Estado: rojo" />
                 <p className="text-xs text-slate-400 leading-relaxed">{trafficRules.red}</p>
               </div>
             )}
             {trafficRules.yellow && (
               <div className="flex items-start gap-2">
-                <span className="w-3 h-3 rounded-full bg-yellow-500 mt-1 flex-shrink-0" />
+                <span className="w-3 h-3 rounded-full bg-yellow-500 mt-1 flex-shrink-0" title="Estado: amarillo" aria-label="Estado: amarillo" />
                 <p className="text-xs text-slate-400 leading-relaxed">{trafficRules.yellow}</p>
               </div>
             )}
             {trafficRules.green && (
               <div className="flex items-start gap-2">
-                <span className="w-3 h-3 rounded-full bg-green-500 mt-1 flex-shrink-0" />
+                <span className="w-3 h-3 rounded-full bg-green-500 mt-1 flex-shrink-0" title="Estado: verde" aria-label="Estado: verde" />
                 <p className="text-xs text-slate-400 leading-relaxed">{trafficRules.green}</p>
               </div>
             )}

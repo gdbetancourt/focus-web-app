@@ -295,9 +295,8 @@ function BucketAccordion({ label, items, defaultOpen = false, showSnooze = false
     if (!pendingIds.length) return;
     setCopyingAll(true);
     try {
-      await Promise.all(
-        pendingItems.map((item) => navigator.clipboard.writeText(item.message_text).catch(() => {}))
-      );
+      const allText = pendingItems.map((i) => i.message_text).join("\n\n---\n\n");
+      try { await navigator.clipboard.writeText(allText); } catch {}
       await api.post("/meetings-confirmations/items/copy-bulk", { item_ids: pendingIds });
       toast.success(`${pendingIds.length} mensaje${pendingIds.length > 1 ? "s" : ""} copiado${pendingIds.length > 1 ? "s" : ""}`);
       onRefresh?.();
@@ -696,10 +695,25 @@ export default function MeetingsConfirmationsPage() {
     }
   }, []);
 
+  // Auto-generate on mount: sync calendar → load items in one shot
   useEffect(() => {
-    loadStatus();
-    loadItems();
-  }, [loadStatus, loadItems]);
+    let cancelled = false;
+    const autoGenerate = async () => {
+      setGenerating(true);
+      try {
+        const res = await api.post("/meetings-confirmations/generate");
+        if (!cancelled) setBuckets(res.data.buckets);
+      } catch {
+        // Fall back to loading existing items if generate fails
+        if (!cancelled) await loadItems();
+      } finally {
+        if (!cancelled) setGenerating(false);
+      }
+      if (!cancelled) await loadStatus();
+    };
+    autoGenerate();
+    return () => { cancelled = true; };
+  }, [loadItems, loadStatus]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -732,6 +746,32 @@ export default function MeetingsConfirmationsPage() {
   const handleRefresh = useCallback(async () => {
     await Promise.all([loadItems(), loadStatus()]);
   }, [loadItems, loadStatus]);
+
+  const [copyingAllGlobal, setCopyingAllGlobal] = useState(false);
+
+  const allPendingItems = buckets
+    ? [...buckets.today, ...buckets.tomorrow, ...buckets.upcoming].filter(
+        (i) => i.status !== "copied"
+      )
+    : [];
+
+  const handleCopyAllGlobal = async () => {
+    if (!allPendingItems.length) return;
+    setCopyingAllGlobal(true);
+    try {
+      const allText = allPendingItems.map((i) => i.message_text).join("\n\n---\n\n");
+      try { await navigator.clipboard.writeText(allText); } catch {}
+      await api.post("/meetings-confirmations/items/copy-bulk", {
+        item_ids: allPendingItems.map((i) => i.item_id),
+      });
+      toast.success(`${allPendingItems.length} mensaje${allPendingItems.length > 1 ? "s" : ""} copiado${allPendingItems.length > 1 ? "s" : ""}`);
+      await handleRefresh();
+    } catch {
+      toast.error("Error al copiar todos los mensajes");
+    } finally {
+      setCopyingAllGlobal(false);
+    }
+  };
 
   const totalToday = buckets
     ? buckets.today.filter((i) => i.status !== "copied").length
@@ -773,7 +813,28 @@ export default function MeetingsConfirmationsPage() {
           )}
         </Button>
 
-        {loadingItems && (
+        {allPendingItems.length > 0 && (
+          <Button
+            variant="outline"
+            onClick={handleCopyAllGlobal}
+            disabled={copyingAllGlobal}
+            className="border-slate-600 text-slate-300 hover:border-green-500 hover:text-green-400"
+          >
+            {copyingAllGlobal ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Copiando...
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar todos ({allPendingItems.length})
+              </>
+            )}
+          </Button>
+        )}
+
+        {(loadingItems || generating) && (
           <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
         )}
 
@@ -809,7 +870,7 @@ export default function MeetingsConfirmationsPage() {
             items={buckets.tomorrow}
             defaultOpen={false}
             showSnooze={false}
-            showCopyAll={false}
+            showCopyAll={true}
             onRefresh={handleRefresh}
           />
 
@@ -819,7 +880,7 @@ export default function MeetingsConfirmationsPage() {
             items={buckets.upcoming}
             defaultOpen={false}
             showSnooze={false}
-            showCopyAll={false}
+            showCopyAll={true}
             onRefresh={handleRefresh}
           />
 

@@ -110,14 +110,14 @@ export default function Cierre() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      nuevo: "bg-blue-100 text-blue-700",
-      en_proceso: "bg-amber-100 text-amber-700",
-      propuesta_enviada: "bg-purple-100 text-purple-700",
-      ganado: "bg-green-100 text-green-700",
-      perdido: "bg-red-100 text-red-700"
+      nuevo: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+      en_proceso: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+      propuesta_enviada: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+      ganado: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+      perdido: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
     };
     return (
-      <Badge className={`${styles[status] || "bg-[#151515]"} hover:opacity-80`}>
+      <Badge className={`${styles[status] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"} hover:opacity-80`}>
         {getStatusLabel(status)}
       </Badge>
     );
