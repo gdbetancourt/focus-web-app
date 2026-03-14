@@ -4,6 +4,7 @@
  */
 
 export { default as MeetingsConfirmationsPage } from './MeetingsConfirmationsPage';
+export { default as CoacheesFollowUpPage } from './CoacheesFollowUpPage';
 export { default as MaxLinkedInConexionsPage } from './MaxLinkedInConexionsPage';
 export { default as ImportNewConnectionsPage } from './ImportNewConnectionsPage';
 export { default as MarketingEventPlanningPage } from './MarketingEventPlanningPage';

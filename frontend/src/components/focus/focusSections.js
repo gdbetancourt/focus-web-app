@@ -90,6 +90,25 @@ export const FOCUS_SECTIONS = [
     sourceComponent: "MeetingsConfirmationsPage",
   },
   {
+    id: "coachees-follow-up",
+    label: "Coachees Follow Up",
+    icon: UserPlus,
+    path: "/focus/coachees-follow-up",
+    trafficType: "daily",
+    subheadline: "Envía seguimiento semanal por WhatsApp a todos los coachees activos en Stage 4.",
+    steps: [
+      { title: "Presiona 'Generar' para ver coachees pendientes de seguimiento" },
+      { title: "Personaliza el template si es necesario" },
+      { title: "Copia o envía cada mensaje por WhatsApp" },
+    ],
+    trafficRules: {
+      red: "Hay coachees pendientes y ningún mensaje ha sido enviado hoy",
+      yellow: "Algunos mensajes enviados pero quedan coachees pendientes",
+      green: "Todos los coachees han sido contactados o no hay pendientes",
+    },
+    sourceComponent: "CoacheesFollowUpPage",
+  },
+  {
     id: "max-linkedin-conexions",
     label: "Max LinkedIn Conexions",
     icon: Users,

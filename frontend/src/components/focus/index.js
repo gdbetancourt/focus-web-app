@@ -14,6 +14,7 @@ export { default as ASSETS_SECTIONS, getAssetSectionById } from './assetsSection
 // Pages
 export {
   MeetingsConfirmationsPage,
+  CoacheesFollowUpPage,
   MaxLinkedInConexionsPage,
   ImportNewConnectionsPage,
   MarketingEventPlanningPage,

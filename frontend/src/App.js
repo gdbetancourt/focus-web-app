@@ -24,6 +24,7 @@ import {
   RoleAssignmentPage,
   MergeCompaniesPage,
   MeetingsConfirmationsPage,
+  CoacheesFollowUpPage,
   WhatsAppFollowUpPage,
   EmailFollowUpPage,
   PreProjectsPage,
@@ -313,6 +314,7 @@ function AppRoutes() {
             <Route path="focus/role-assignment" element={<RoleAssignmentPage />} />
             <Route path="focus/merge-companies" element={<MergeCompaniesPage />} />
             <Route path="focus/meetings-confirmations" element={<MeetingsConfirmationsPage />} />
+            <Route path="focus/coachees-follow-up" element={<CoacheesFollowUpPage />} />
             <Route path="focus/whatsapp-follow-up" element={<WhatsAppFollowUpPage />} />
             <Route path="focus/email-follow-up" element={<EmailFollowUpPage />} />
             <Route path="focus/pre-projects" element={<PreProjectsPage />} />
