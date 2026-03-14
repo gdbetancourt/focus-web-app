@@ -1,11 +1,12 @@
 /**
- * IndustrySearchesContent - Saved LinkedIn searches organized by industry
+ * IndustrySearchesContent - Outbound companies grouped by industry,
+ * showing their LinkedIn searches. Read-only (searches are managed
+ * from "Empresas activas"). Mark-copied uses the companies endpoint.
  */
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Input } from "../ui/input";
 import {
   Dialog,
   DialogContent,
@@ -13,13 +14,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "../ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import {
   Accordion,
   AccordionContent,
@@ -33,14 +27,11 @@ import { LINKEDIN_PROFILES } from "../focus/focusSections";
 import {
   Factory,
   Search,
-  Plus,
   Copy,
-  Trash2,
   Clock,
   User,
   RefreshCw,
   CheckCircle,
-  ChevronDown,
 } from "lucide-react";
 
 const PROFILES = {
@@ -48,119 +39,9 @@ const PROFILES = {
   MG: "María del Mar Gargari",
 };
 
-const PROFILE_GROUPS = [
-  ...LINKEDIN_PROFILES.map((p) => ({ key: p.id.toLowerCase(), label: `${p.name} (${p.label})` })),
-  { key: "__none__", label: "Sin perfil asignado" },
-];
-
-function IndustrySearchProfileGroups({ searches, onCopyUrl, onDeleteSearch }) {
-  const [collapsed, setCollapsed] = useState({});
-  const knownKeys = new Set(LINKEDIN_PROFILES.map((p) => p.id.toLowerCase()));
-
-  const grouped = PROFILE_GROUPS.map((group) => {
-    const items =
-      group.key === "__none__"
-        ? searches.filter((s) => !s.assigned_profile || !knownKeys.has(s.assigned_profile.toLowerCase()))
-        : searches.filter((s) => s.assigned_profile?.toLowerCase() === group.key);
-    return { ...group, items };
-  });
-
-  const toggle = (key) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  return (
-    <div className="space-y-3">
-      {grouped.map((group) => (
-        <div key={group.key} className="border border-[#222] rounded-lg overflow-hidden">
-          <button
-            onClick={() => toggle(group.key)}
-            className="flex items-center justify-between w-full px-3 py-2 bg-[#0a0a0a] hover:bg-[#151515] transition-colors text-left"
-          >
-            <div className="flex items-center gap-2">
-              <User className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-sm font-medium text-slate-300">{group.label}</span>
-              <Badge variant="outline" className="border-[#333] text-slate-500 text-[10px] px-1.5 py-0">
-                {group.items.length}
-              </Badge>
-            </div>
-            <ChevronDown
-              className={`w-4 h-4 text-slate-500 transition-transform ${collapsed[group.key] ? "-rotate-90" : ""}`}
-            />
-          </button>
-          {!collapsed[group.key] && (
-            <div className="px-3 pb-3 pt-2 space-y-2">
-              {group.items.length === 0 ? (
-                <p className="text-xs text-slate-600 text-center py-2">Sin búsquedas</p>
-              ) : (
-                group.items.map((search) => (
-                  <div
-                    key={search.id}
-                    className="flex items-center justify-between p-3 bg-[#111] rounded border border-[#333]"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Search className="w-4 h-4 text-slate-500 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm text-white">{search.keyword}</p>
-                          {search.last_prospected_by && (
-                            <Badge variant="outline" className="border-[#444] text-slate-400 text-[10px] px-1.5 py-0">
-                              {search.last_prospected_by}
-                            </Badge>
-                          )}
-                        </div>
-                        {search.last_prospected_at && (
-                          <p className="text-xs text-slate-600">
-                            Prospectado: {new Date(search.last_prospected_at).toLocaleDateString("es-MX")}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-3">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onCopyUrl(search)}
-                        className="h-8 w-8 p-0 text-slate-500 hover:text-green-400"
-                        title="Copiar URL y marcar como usada"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onDeleteSearch(search.id)}
-                        className="h-8 w-8 p-0 text-slate-500 hover:text-red-400"
-                        title="Eliminar búsqueda"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function IndustrySearchesContent() {
   const [industries, setIndustries] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Add industry dialog
-  const [addIndustryOpen, setAddIndustryOpen] = useState(false);
-  const [newIndustryName, setNewIndustryName] = useState("");
-  const [addingIndustry, setAddingIndustry] = useState(false);
-
-  // Add search dialog
-  const [addSearchOpen, setAddSearchOpen] = useState(false);
-  const [addSearchIndustry, setAddSearchIndustry] = useState(null);
-  const [newKeyword, setNewKeyword] = useState("");
-  const [newUrl, setNewUrl] = useState("");
-  const [newProfile, setNewProfile] = useState("");
-  const [adding, setAdding] = useState(false);
 
   // Copy URL dialog
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
@@ -184,72 +65,8 @@ export function IndustrySearchesContent() {
     loadData();
   }, [loadData]);
 
-  const handleAddIndustry = async () => {
-    const name = newIndustryName.trim();
-    if (!name) return;
-    setAddingIndustry(true);
-    try {
-      await api.post("/prospection/industries", { name });
-      toast.success("Industria creada");
-      setAddIndustryOpen(false);
-      setNewIndustryName("");
-      loadData();
-    } catch (error) {
-      console.error("Error creating industry:", error);
-      toast.error("Error al crear industria");
-    } finally {
-      setAddingIndustry(false);
-    }
-  };
-
-  const handleDeleteIndustry = async (industryId) => {
-    try {
-      await api.delete(`/prospection/industries/${industryId}`);
-      toast.success("Industria eliminada");
-      loadData();
-    } catch (error) {
-      console.error("Error deleting industry:", error);
-      toast.error("Error al eliminar");
-    }
-  };
-
-  const handleAddSearch = async () => {
-    if (!addSearchIndustry || !newKeyword.trim() || !newUrl.trim()) return;
-    setAdding(true);
-    try {
-      await api.post(`/prospection/industries/${addSearchIndustry.id}/searches`, {
-        keyword: newKeyword.trim(),
-        url: newUrl.trim(),
-        assigned_profile: newProfile ? newProfile.toLowerCase() : null,
-      });
-      toast.success("Búsqueda agregada");
-      setAddSearchOpen(false);
-      setNewKeyword("");
-      setNewUrl("");
-      setNewProfile("");
-      setAddSearchIndustry(null);
-      loadData();
-    } catch (error) {
-      console.error("Error adding search:", error);
-      toast.error("Error al agregar búsqueda");
-    } finally {
-      setAdding(false);
-    }
-  };
-
-  const handleDeleteSearch = async (searchId) => {
-    try {
-      await api.delete(`/prospection/industry-searches/${searchId}`);
-      toast.success("Búsqueda eliminada");
-      loadData();
-    } catch (error) {
-      console.error("Error deleting search:", error);
-      toast.error("Error al eliminar");
-    }
-  };
-
-  const handleCopyUrl = (search) => {
-    setCopyingSearch(search);
+  const handleCopyUrl = (search, industryName) => {
+    setCopyingSearch({ ...search, industry_name: industryName });
     setCopyProfile(search.assigned_profile?.toUpperCase() || "GB");
     setCopyDialogOpen(true);
   };
@@ -262,8 +79,8 @@ export function IndustrySearchesContent() {
         toast.error("No se pudo copiar al portapapeles");
         return;
       }
-      await api.post(`/prospection/industry-searches/${copyingSearch.id}/mark-copied`, {
-        profile_id: copyProfile,
+      await api.post(`/prospection/searches/${copyingSearch.id}/mark-copied`, {
+        profile: copyProfile,
       });
       toast.success(`URL copiada - Prospección con ${PROFILES[copyProfile]}`);
       setCopyDialogOpen(false);
@@ -275,9 +92,9 @@ export function IndustrySearchesContent() {
     }
   };
 
-  // Build global queue
+  // Build global queue: all searches across all industries
   const allSearches = industries.flatMap((ind) =>
-    (ind.searches || []).map((s) => ({ ...s, industry_name: ind.name, industry_id: ind.id }))
+    (ind.searches || []).map((s) => ({ ...s, industry_name: ind.name }))
   );
 
   const sortedQueue = [...allSearches].sort((a, b) => {
@@ -307,20 +124,10 @@ export function IndustrySearchesContent() {
             {industries.length} industrias
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => setAddIndustryOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva industria
-          </Button>
-          <Button variant="outline" size="sm" onClick={loadData} className="border-[#333]">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Actualizar
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={loadData} className="border-[#333]">
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Actualizar
+        </Button>
       </div>
 
       {/* Search Queue */}
@@ -339,7 +146,7 @@ export function IndustrySearchesContent() {
             <div className="text-center py-8 text-slate-500">
               <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400 opacity-50" />
               <p>No hay búsquedas en la cola</p>
-              <p className="text-xs mt-1">Agrega búsquedas desde las tarjetas de industrias</p>
+              <p className="text-xs mt-1">Las búsquedas se gestionan desde "Empresas activas"</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -355,7 +162,7 @@ export function IndustrySearchesContent() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-white text-sm font-medium truncate">
-                          {search.industry_name}
+                          {search.keyword}
                         </p>
                         {search.last_prospected_by && (
                           <Badge variant="outline" className="border-[#444] text-slate-500 text-[10px] px-1.5 py-0 shrink-0">
@@ -363,7 +170,9 @@ export function IndustrySearchesContent() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 truncate">{search.keyword}</p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {search.company_name} · {search.industry_name}
+                      </p>
                     </div>
                     {search.last_prospected_at ? (
                       <div className="text-xs text-slate-600 shrink-0">
@@ -376,7 +185,7 @@ export function IndustrySearchesContent() {
                   <div className="flex items-center gap-2 ml-3">
                     <Button
                       size="sm"
-                      onClick={() => handleCopyUrl(search)}
+                      onClick={() => handleCopyUrl(search, search.industry_name)}
                       className="bg-purple-600 hover:bg-purple-700 h-8"
                     >
                       <Copy className="w-3 h-3 mr-1" />
@@ -407,14 +216,14 @@ export function IndustrySearchesContent() {
           {industries.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               <Factory className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>No hay industrias</p>
+              <p>No hay industrias con empresas outbound</p>
             </div>
           ) : (
             <Accordion type="single" collapsible className="space-y-2">
               {industries.map((industry) => (
                 <AccordionItem
-                  key={industry.id}
-                  value={industry.id}
+                  key={industry.name}
+                  value={industry.name}
                   className="border rounded-lg overflow-hidden border-[#222]"
                 >
                   <AccordionTrigger className="hover:no-underline px-4 py-3 bg-[#0a0a0a]">
@@ -422,6 +231,9 @@ export function IndustrySearchesContent() {
                       <div className="flex items-center gap-3">
                         <Factory className="w-4 h-4 text-purple-400" />
                         <span className="font-medium text-white">{industry.name}</span>
+                        <Badge variant="outline" className="border-[#444] text-slate-500 text-[10px] px-1.5 py-0">
+                          {industry.companies_count} empresas
+                        </Badge>
                       </div>
                       <Badge variant="outline" className="border-[#333] text-slate-400">
                         {industry.searches?.length || 0} búsquedas
@@ -429,33 +241,49 @@ export function IndustrySearchesContent() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
-                    <div className="space-y-3 mt-2">
-                      <IndustrySearchProfileGroups
-                        searches={industry.searches || []}
-                        onCopyUrl={handleCopyUrl}
-                        onDeleteSearch={handleDeleteSearch}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setAddSearchIndustry(industry);
-                          setAddSearchOpen(true);
-                        }}
-                        className="w-full border-dashed border-[#333] text-slate-400 hover:text-white"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Agregar búsqueda
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteIndustry(industry.id)}
-                        className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Eliminar industria
-                      </Button>
+                    <div className="space-y-2 mt-2">
+                      {(industry.searches || []).length === 0 ? (
+                        <p className="text-xs text-slate-600 text-center py-4">
+                          Sin búsquedas guardadas. Agrega búsquedas desde "Empresas activas".
+                        </p>
+                      ) : (
+                        (industry.searches || []).map((search) => (
+                          <div
+                            key={search.id}
+                            className="flex items-center justify-between p-3 bg-[#111] rounded border border-[#333]"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <Search className="w-4 h-4 text-slate-500 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm text-white">{search.keyword}</p>
+                                  {search.assigned_profile && (
+                                    <Badge variant="outline" className="border-[#444] text-slate-400 text-[10px] px-1.5 py-0">
+                                      {search.assigned_profile}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-600">{search.company_name}</p>
+                                {search.last_prospected_at && (
+                                  <p className="text-xs text-slate-600">
+                                    Prospectado: {new Date(search.last_prospected_at).toLocaleDateString("es-MX")}
+                                    {search.last_prospected_by && ` por ${search.last_prospected_by}`}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCopyUrl(search, industry.name)}
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-green-400"
+                              title="Copiar URL y marcar como usada"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -464,101 +292,6 @@ export function IndustrySearchesContent() {
           )}
         </CardContent>
       </Card>
-
-      {/* Add Industry Dialog */}
-      <Dialog open={addIndustryOpen} onOpenChange={setAddIndustryOpen}>
-        <DialogContent className="bg-[#111] border-[#222]">
-          <DialogHeader>
-            <DialogTitle className="text-white">Nueva industria</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Nombre de la industria</label>
-              <Input
-                placeholder="Ej: Farmacéutica, Tecnología, Manufactura"
-                value={newIndustryName}
-                onChange={(e) => setNewIndustryName(e.target.value)}
-                className="bg-[#0a0a0a] border-[#333]"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddIndustryOpen(false)} className="border-[#333]">
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleAddIndustry}
-              disabled={addingIndustry || !newIndustryName.trim()}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {addingIndustry ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Crear
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Search Dialog */}
-      <Dialog open={addSearchOpen} onOpenChange={setAddSearchOpen}>
-        <DialogContent className="bg-[#111] border-[#222]">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              Agregar búsqueda - {addSearchIndustry?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Keyword</label>
-              <Input
-                placeholder="Ej: marketing, recursos humanos"
-                value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
-                className="bg-[#0a0a0a] border-[#333]"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">URL de búsqueda de LinkedIn</label>
-              <Input
-                placeholder="https://linkedin.com/search/results/people/..."
-                value={newUrl}
-                onChange={(e) => setNewUrl(e.target.value)}
-                className="bg-[#0a0a0a] border-[#333]"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Perfil asignado</label>
-              <Select value={newProfile} onValueChange={setNewProfile}>
-                <SelectTrigger className="bg-[#0a0a0a] border-[#333]">
-                  <SelectValue placeholder="Selecciona un perfil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LINKEDIN_PROFILES.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        <User className="w-3 h-3" />
-                        {p.name} ({p.label})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddSearchOpen(false)} className="border-[#333]">
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleAddSearch}
-              disabled={adding || !newKeyword.trim() || !newUrl.trim()}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {adding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Agregar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Copy URL Dialog */}
       <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
@@ -592,7 +325,9 @@ export function IndustrySearchesContent() {
               <div className="mt-4 p-3 bg-[#0a0a0a] rounded border border-[#222]">
                 <p className="text-xs text-slate-500">Búsqueda:</p>
                 <p className="text-sm text-white">{copyingSearch.keyword}</p>
-                <p className="text-xs text-slate-500 mt-1">Industria: {copyingSearch.industry_name}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {copyingSearch.company_name} · {copyingSearch.industry_name}
+                </p>
               </div>
             )}
           </div>
